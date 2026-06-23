@@ -1,0 +1,131 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { query, execute } from '@/lib/db';
+import { hashPassword } from '@/lib/auth';
+import { withAuth, getUserFromRequest } from '@/middleware/withAuth';
+import { createUserSchema } from '@/lib/validations';
+import { createAuditLog } from '@/lib/audit';
+import { generateId, getPaginationParams } from '@/lib/utils';
+import { ApiResponse } from '@/types';
+
+async function handleGet(req: NextRequest) {
+  try {
+    const user = getUserFromRequest(req);
+    const { searchParams } = new URL(req.url);
+    const { page, limit, offset } = getPaginationParams(searchParams);
+    const search = searchParams.get('search') || '';
+    const role = searchParams.get('role') || '';
+    const status = searchParams.get('status') || '';
+
+    let whereClause = '1=1';
+    const params: unknown[] = [];
+
+    if (search) {
+      whereClause += ' AND (u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    if (role) {
+      whereClause += ' AND r.name = ?';
+      params.push(role);
+    }
+
+    if (status === 'active') {
+      whereClause += ' AND u.is_active = TRUE AND u.is_suspended = FALSE';
+    } else if (status === 'suspended') {
+      whereClause += ' AND u.is_suspended = TRUE';
+    } else if (status === 'inactive') {
+      whereClause += ' AND u.is_active = FALSE';
+    }
+
+    // Non-super admins can only see users from their organization
+    if (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN' && user.organizationId) {
+      whereClause += ' AND u.organization_id = ?';
+      params.push(user.organizationId);
+    }
+
+    const [countResult] = await query<{ total: number }[]>(
+      `SELECT COUNT(*) as total FROM users u JOIN roles r ON u.role_id = r.id WHERE ${whereClause}`,
+      params
+    );
+    const total = (countResult as unknown as { total: number }).total;
+
+    const users = await query(
+      `SELECT u.id, u.email, u.first_name, u.last_name, u.phone, u.avatar, u.department,
+              u.is_active, u.is_suspended, u.email_verified, u.last_login, u.created_at,
+              r.name as role_name, o.name as organization_name
+       FROM users u
+       JOIN roles r ON u.role_id = r.id
+       LEFT JOIN organizations o ON u.organization_id = o.id
+       WHERE ${whereClause}
+       ORDER BY u.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      message: 'Users fetched successfully',
+      data: users,
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    return NextResponse.json<ApiResponse>(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+async function handlePost(req: NextRequest) {
+  try {
+    const user = getUserFromRequest(req);
+    const body = await req.json();
+    const validation = createUserSchema.safeParse(body);
+
+    if (!validation.success) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, message: 'Validation failed', errors: validation.error.flatten().fieldErrors as Record<string, string[]> },
+        { status: 400 }
+      );
+    }
+
+    const data = validation.data;
+    const hashedPassword = await hashPassword(data.password);
+    const userId = generateId();
+
+    await execute(
+      `INSERT INTO users (id, email, password, first_name, last_name, phone, role_id, organization_id, department, is_active, email_verified)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, FALSE)`,
+      [userId, data.email, hashedPassword, data.first_name, data.last_name, data.phone || null, data.role_id, data.organization_id || null, data.department || null]
+    );
+
+    await createAuditLog({
+      userId: user.userId,
+      action: 'USER_CREATED',
+      module: 'users',
+      description: `Created user ${data.email}`,
+      newValues: { email: data.email, role_id: data.role_id },
+    });
+
+    return NextResponse.json<ApiResponse>(
+      { success: true, message: 'User created successfully', data: { id: userId } },
+      { status: 201 }
+    );
+  } catch (error: unknown) {
+    if ((error as { code?: string }).code === 'ER_DUP_ENTRY') {
+      return NextResponse.json<ApiResponse>(
+        { success: false, message: 'Email already exists' },
+        { status: 409 }
+      );
+    }
+    console.error('Create user error:', error);
+    return NextResponse.json<ApiResponse>(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export const GET = withAuth(handleGet, ['SUPER_ADMIN', 'ADMIN', 'HOD', 'PROCUREMENT_OFFICER']);
+export const POST = withAuth(handlePost, ['SUPER_ADMIN', 'ADMIN']);
