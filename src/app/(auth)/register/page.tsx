@@ -73,14 +73,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4 py-8">
-      <Card className="w-full max-w-2xl">
+    <div className="min-h-screen flex items-center justify-center p-4 py-8" style={{background:'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)'}}>
+      <Card className="w-full max-w-2xl rounded-2xl shadow-xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-blue-600">Supplier Registration</CardTitle>
+          <CardTitle className="text-2xl font-bold" style={{color:'#1B5E20'}}>Supplier Registration</CardTitle>
           <CardDescription>Register your company to access procurement opportunities</CardDescription>
           <div className="flex justify-center gap-2 mt-4">
             {[1, 2, 3].map((s) => (
-              <div key={s} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${step >= s ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+              <div key={s} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium ${step >= s ? 'text-white' : 'bg-gray-200 text-gray-600'}`} style={step >= s ? {backgroundColor:'#1B5E20'} : {}}>
                 {s}
               </div>
             ))}
@@ -177,9 +177,10 @@ export default function RegisterPage() {
                           onClick={() => toggleCategory(cat)}
                           className={`px-4 py-2 rounded-lg border text-sm font-medium transition-colors ${
                             selectedCategories?.includes(cat)
-                              ? 'bg-blue-600 text-white border-blue-600'
-                              : 'bg-white text-gray-700 border-gray-300 hover:border-blue-300'
+                              ? 'text-white border-transparent'
+                              : 'bg-white text-gray-700 border-gray-300'
                           }`}
+                          style={selectedCategories?.includes(cat) ? {backgroundColor:'#1B5E20'} : {}}
                         >
                           {cat}
                         </button>
@@ -222,7 +223,7 @@ export default function RegisterPage() {
 
           <div className="text-center text-sm text-gray-500 mt-4">
             Already have an account?{' '}
-            <Link href="/login" className="text-blue-600 hover:underline font-medium">Sign in</Link>
+            <Link href="/login" className="hover:underline font-medium" style={{color:'#1B5E20'}}>Sign in</Link>
           </div>
         </CardContent>
       </Card>

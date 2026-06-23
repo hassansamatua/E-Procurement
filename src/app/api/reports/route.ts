@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { withAuth, getUserFromRequest } from '@/middleware/withAuth';
 import { ApiResponse } from '@/types';
+import PDFDocument from 'pdfkit';
+import ExcelJS from 'exceljs';
+import { writeFile } from 'fs/promises';
+import path from 'path';
 
 async function handleGet(req: NextRequest) {
   try {
@@ -141,12 +145,32 @@ async function handleGet(req: NextRequest) {
       });
     }
 
-    // For PDF/Excel, return the data with format indicator
-    return NextResponse.json<ApiResponse>({
-      success: true,
-      message: `${reportType} report data ready for ${format} generation`,
-      data: { reportType, format, records: reportData },
-    });
+    // Generate PDF
+    if (format === 'pdf') {
+      const pdfBuffer = await generatePDF(reportType, reportData as Record<string, unknown>[]);
+      return new NextResponse(pdfBuffer as unknown as BodyInit, {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${reportType}-report.pdf"`,
+        },
+      });
+    }
+
+    // Generate Excel
+    if (format === 'excel') {
+      const excelBuffer = await generateExcel(reportType, reportData as Record<string, unknown>[]);
+      return new NextResponse(excelBuffer as unknown as BodyInit, {
+        headers: {
+          'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+          'Content-Disposition': `attachment; filename="${reportType}-report.xlsx"`,
+        },
+      });
+    }
+
+    return NextResponse.json<ApiResponse>(
+      { success: false, message: 'Invalid format' },
+      { status: 400 }
+    );
   } catch (error) {
     console.error('Generate report error:', error);
     return NextResponse.json<ApiResponse>(
@@ -154,6 +178,79 @@ async function handleGet(req: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+async function generatePDF(reportType: string, data: Record<string, unknown>[]): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ size: 'A4', margins: { top: 50, bottom: 50, left: 50, right: 50 } });
+      const chunks: Buffer[] = [];
+
+      doc.on('data', (chunk) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      doc.fontSize(20).text(`${reportType.toUpperCase()} Report`, { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(10).text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+      doc.moveDown(2);
+
+      if (data.length > 0) {
+        const headers = Object.keys(data[0]);
+        const columnWidth = (doc.page.width - 100) / headers.length;
+
+        // Table header
+        doc.fontSize(10).font('Helvetica-Bold');
+        headers.forEach((header, i) => {
+          doc.text(header, 50 + (i * columnWidth), doc.y, { width: columnWidth });
+        });
+        doc.moveDown();
+
+        // Table rows
+        doc.fontSize(9).font('Helvetica');
+        data.forEach((row) => {
+          headers.forEach((header, i) => {
+            const value = String(row[header] || '');
+            doc.text(value.substring(0, 30), 50 + (i * columnWidth), doc.y, { width: columnWidth });
+          });
+          doc.moveDown();
+        });
+      } else {
+        doc.text('No data available');
+      }
+
+      doc.end();
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+async function generateExcel(reportType: string, data: Record<string, unknown>[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Report');
+
+  if (data.length > 0) {
+    const headers = Object.keys(data[0]);
+    worksheet.addRow(headers);
+
+    data.forEach((row) => {
+      const values = headers.map((header) => row[header] || '');
+      worksheet.addRow(values);
+    });
+
+    // Style header row
+    const headerRow = worksheet.getRow(1);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE8F5E9' },
+    };
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }
 
 export const GET = withAuth(handleGet, ['SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER', 'ACCOUNTING_OFFICER']);

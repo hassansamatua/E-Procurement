@@ -69,5 +69,38 @@ async function handlePost(req: NextRequest) {
   }
 }
 
+async function handleDelete(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get('id');
+    const type = searchParams.get('type') || 'procurement';
+
+    if (!id) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, message: 'Category ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (type === 'tender') {
+      await execute('DELETE FROM tender_categories WHERE id = ?', [id]);
+    } else {
+      await execute('DELETE FROM procurement_categories WHERE id = ?', [id]);
+    }
+
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      message: 'Category deleted',
+    });
+  } catch (error) {
+    console.error('Delete category error:', error);
+    return NextResponse.json<ApiResponse>(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export const GET = withAuth(handleGet);
 export const POST = withAuth(handlePost, ['SUPER_ADMIN', 'ADMIN']);
+export const DELETE = withAuth(handleDelete, ['SUPER_ADMIN', 'ADMIN']);
