@@ -43,6 +43,11 @@ export const useAuthStore = create<AuthState>()(
         try {
           const response = await axios.post('/api/auth/login', { email, password });
           const { user, accessToken, refreshToken } = response.data.data;
+          // Reset refresh state on successful login
+          refreshFailureCount = 0;
+          refreshDisabled = false;
+          isRefreshing = false;
+          failedQueue = [];
           set({
             user,
             accessToken,
@@ -84,29 +89,46 @@ export const useAuthStore = create<AuthState>()(
         } catch {
           // Ignore errors on logout
         }
+        // Reset refresh state to prevent retry loops
+        isRefreshing = false;
+        refreshFailureCount = 0;
+        failedQueue = [];
         set({
           user: null,
           accessToken: null,
           refreshToken: null,
           isAuthenticated: false,
         });
+        // Clear localStorage to ensure no stale tokens remain
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth-storage');
+        }
       },
 
       refreshAccessToken: async () => {
         try {
           const { refreshToken } = get();
-          if (!refreshToken) throw new Error('No refresh token');
+          if (!refreshToken) {
+            throw new Error('No refresh token available');
+          }
           
           const response = await axios.post('/api/auth/refresh', { refreshToken });
           const { accessToken: newAccessToken, refreshToken: newRefreshToken } = response.data.data;
+          
+          if (!newAccessToken || !newRefreshToken) {
+            throw new Error('Invalid refresh response');
+          }
+          
           set({ accessToken: newAccessToken, refreshToken: newRefreshToken });
-        } catch {
+        } catch (error) {
+          console.error('Token refresh failed:', error);
           set({
             user: null,
             accessToken: null,
             refreshToken: null,
             isAuthenticated: false,
           });
+          throw error;
         }
       },
     }),
@@ -123,6 +145,22 @@ export const useAuthStore = create<AuthState>()(
 );
 
 // Axios interceptor setup
+let isRefreshing = false;
+let failedQueue: Array<{ resolve: (value: unknown) => void; reject: (reason?: unknown) => void }> = [];
+let refreshFailureCount = 0;
+let refreshDisabled = false;
+
+const processQueue = (error: unknown, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  failedQueue = [];
+};
+
 export function setupAxiosInterceptors() {
   axios.interceptors.request.use((config) => {
     const state = useAuthStore.getState();
@@ -136,20 +174,66 @@ export function setupAxiosInterceptors() {
     (response) => response,
     async (error) => {
       const originalRequest = error.config;
+      const state = useAuthStore.getState();
+      
+      // Skip refresh for auth endpoints to prevent infinite loops
+      if (originalRequest.url?.includes('/api/auth/')) {
+        return Promise.reject(error);
+      }
+      
+      // Don't attempt refresh if user is not authenticated or refresh is disabled
+      if (!state.isAuthenticated || !state.refreshToken || refreshDisabled) {
+        return Promise.reject(error);
+      }
+      
+      // Stop retrying after 3 consecutive refresh failures
+      if (refreshFailureCount >= 3) {
+        refreshDisabled = true; // Disable refresh entirely
+        await useAuthStore.getState().logout();
+        if (typeof window !== 'undefined') {
+          window.location.href = '/login';
+        }
+        return Promise.reject(error);
+      }
+      
       if (error.response?.status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then((token) => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return axios(originalRequest);
+          }).catch((err) => {
+            return Promise.reject(err);
+          });
+        }
+
         originalRequest._retry = true;
+        isRefreshing = true;
+
         try {
           await useAuthStore.getState().refreshAccessToken();
-          const state = useAuthStore.getState();
-          originalRequest.headers.Authorization = `Bearer ${state.accessToken}`;
+          const newState = useAuthStore.getState();
+          if (!newState.accessToken) {
+            throw new Error('No access token after refresh');
+          }
+          refreshFailureCount = 0; // Reset on success
+          processQueue(null, newState.accessToken);
+          originalRequest.headers.Authorization = `Bearer ${newState.accessToken}`;
           return axios(originalRequest);
-        } catch {
-          useAuthStore.getState().logout();
+        } catch (refreshError) {
+          refreshFailureCount++;
+          processQueue(refreshError, null);
+          await useAuthStore.getState().logout();
           if (typeof window !== 'undefined') {
             window.location.href = '/login';
           }
+          return Promise.reject(refreshError);
+        } finally {
+          isRefreshing = false;
         }
       }
+      
       return Promise.reject(error);
     }
   );

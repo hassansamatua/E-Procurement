@@ -77,8 +77,11 @@ export default function SupplierManagement() {
     { key: 'email', label: 'Email' },
     { key: 'phone', label: 'Phone' },
     { key: 'categories', label: 'Categories', render: (item: Record<string, unknown>) => {
-      const cats = item.categories as string[];
-      return cats?.join(', ') || 'N/A';
+      const cats = item.categories as string | string[];
+      if (Array.isArray(cats)) {
+        return cats.join(', ') || 'N/A';
+      }
+      return cats || 'N/A';
     }},
     { key: 'status', label: 'Status', render: (item: Record<string, unknown>) => getStatusBadge(item.status as string) },
     { key: 'created_at', label: 'Registered', render: (item: Record<string, unknown>) => new Date(item.created_at as string).toLocaleDateString() },

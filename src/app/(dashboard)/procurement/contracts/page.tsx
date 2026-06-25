@@ -13,12 +13,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus, Eye, FileSignature } from 'lucide-react';
 
+const emptyContract = {
+  tender_id: '',
+  supplier_id: '',
+  bid_id: '',
+  title: '',
+  description: '',
+  contract_amount: '',
+  currency: 'TZS',
+  start_date: '',
+  end_date: '',
+  signing_date: '',
+  terms_and_conditions: '',
+};
+
 export default function ContractsManagement() {
   const [contracts, setContracts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [tenders, setTenders] = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [form, setForm] = useState({ ...emptyContract });
+  const [createError, setCreateError] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -42,27 +59,31 @@ export default function ContractsManagement() {
 
   const handleCreateContract = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
+    setCreateError('');
+    setCreateLoading(true);
+
     try {
       await axios.post('/api/contracts', {
-        tender_id: formData.get('tender_id'),
-        supplier_id: formData.get('supplier_id'),
-        bid_id: formData.get('bid_id') || null,
-        title: formData.get('title'),
-        description: formData.get('description'),
-        contract_amount: formData.get('contract_amount'),
-        currency: formData.get('currency') || 'TZS',
-        start_date: formData.get('start_date'),
-        end_date: formData.get('end_date'),
-        signing_date: formData.get('signing_date') || null,
-        terms_and_conditions: formData.get('terms_and_conditions'),
+        tender_id: form.tender_id,
+        supplier_id: form.supplier_id,
+        bid_id: form.bid_id || undefined,
+        title: form.title,
+        description: form.description || undefined,
+        contract_amount: form.contract_amount ? Number(form.contract_amount) : undefined,
+        currency: form.currency || 'TZS',
+        start_date: form.start_date,
+        end_date: form.end_date,
+        signing_date: form.signing_date || undefined,
+        terms_and_conditions: form.terms_and_conditions || undefined,
       });
+      setForm({ ...emptyContract });
       setIsCreateOpen(false);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create contract:', error);
+      setCreateError(error.response?.data?.message || 'Failed to create contract');
     }
+    setCreateLoading(false);
   };
 
   const handleUpdateStatus = async (contractId: string, status: string) => {
@@ -114,17 +135,20 @@ export default function ContractsManagement() {
                 <DialogTitle>Create New Contract</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateContract} className="space-y-4">
+                {createError && (
+                  <div className="p-3 text-sm text-white bg-destructive rounded-md">{createError}</div>
+                )}
                 <div>
                   <Label htmlFor="title">Contract Title</Label>
-                  <Input id="title" name="title" required />
+                  <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
                 </div>
                 <div>
                   <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" name="description" />
+                  <Textarea id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
                 </div>
                 <div>
                   <Label htmlFor="tender_id">Tender</Label>
-                  <Select name="tender_id" required>
+                  <Select value={form.tender_id} onValueChange={(value) => setForm({ ...form, tender_id: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select tender" />
                     </SelectTrigger>
@@ -137,7 +161,7 @@ export default function ContractsManagement() {
                 </div>
                 <div>
                   <Label htmlFor="supplier_id">Supplier</Label>
-                  <Select name="supplier_id" required>
+                  <Select value={form.supplier_id} onValueChange={(value) => setForm({ ...form, supplier_id: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select supplier" />
                     </SelectTrigger>
@@ -151,34 +175,34 @@ export default function ContractsManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="contract_amount">Contract Amount</Label>
-                    <Input id="contract_amount" name="contract_amount" type="number" required />
+                    <Input id="contract_amount" type="number" value={form.contract_amount} onChange={(e) => setForm({ ...form, contract_amount: e.target.value })} required />
                   </div>
                   <div>
                     <Label htmlFor="currency">Currency</Label>
-                    <Input id="currency" name="currency" defaultValue="TZS" />
+                    <Input id="currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="start_date">Start Date</Label>
-                    <Input id="start_date" name="start_date" type="date" required />
+                    <Input id="start_date" type="date" value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} required />
                   </div>
                   <div>
                     <Label htmlFor="end_date">End Date</Label>
-                    <Input id="end_date" name="end_date" type="date" required />
+                    <Input id="end_date" type="date" value={form.end_date} onChange={(e) => setForm({ ...form, end_date: e.target.value })} required />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="signing_date">Signing Date</Label>
-                  <Input id="signing_date" name="signing_date" type="date" />
+                  <Input id="signing_date" type="date" value={form.signing_date} onChange={(e) => setForm({ ...form, signing_date: e.target.value })} />
                 </div>
                 <div>
                   <Label htmlFor="terms_and_conditions">Terms and Conditions</Label>
-                  <Textarea id="terms_and_conditions" name="terms_and_conditions" />
+                  <Textarea id="terms_and_conditions" value={form.terms_and_conditions} onChange={(e) => setForm({ ...form, terms_and_conditions: e.target.value })} />
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                  <Button type="submit">Create Contract</Button>
+                  <Button type="submit" disabled={createLoading}>{createLoading ? 'Creating...' : 'Create Contract'}</Button>
                 </div>
               </form>
             </DialogContent>

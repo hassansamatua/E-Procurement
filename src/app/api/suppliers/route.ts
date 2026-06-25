@@ -8,6 +8,7 @@ import { ApiResponse } from '@/types';
 
 async function handleGet(req: NextRequest) {
   try {
+    const user = getUserFromRequest(req);
     const { searchParams } = new URL(req.url);
     const { page, limit, offset } = getPaginationParams(searchParams);
     const search = searchParams.get('search') || '';
@@ -16,6 +17,12 @@ async function handleGet(req: NextRequest) {
 
     let whereClause = '1=1';
     const params: unknown[] = [];
+
+    // Suppliers can only view their own profile
+    if (user.role === 'SUPPLIER') {
+      whereClause += ' AND s.user_id = ?';
+      params.push(user.userId);
+    }
 
     if (search) {
       whereClause += ' AND (s.company_name LIKE ? OR s.email LIKE ? OR s.contact_person LIKE ?)';
@@ -63,7 +70,7 @@ async function handleGet(req: NextRequest) {
   }
 }
 
-export const GET = withAuth(handleGet, ['SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER']);
+export const GET = withAuth(handleGet, ['SUPER_ADMIN', 'ADMIN', 'PROCUREMENT_OFFICER', 'SUPPLIER']);
 
 // Approve/Reject/Blacklist supplier
 export const PATCH = withAuth(async (req: NextRequest) => {

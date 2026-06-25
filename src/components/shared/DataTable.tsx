@@ -38,7 +38,7 @@ export default function DataTable({
       {onSearch && (
         <div className="flex items-center gap-2">
           <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
             <Input
               placeholder={searchPlaceholder}
               onChange={(e) => onSearch(e.target.value)}
@@ -48,32 +48,37 @@ export default function DataTable({
         </div>
       )}
 
-      <div className="border rounded-lg">
+      <div className="rounded-xl border border-border/70 bg-card card-elevated overflow-hidden">
         <Table>
-          <TableHeader>
-            <TableRow>
+          <TableHeader className="[&_tr]:border-b bg-muted/60">
+            <TableRow className="hover:bg-transparent">
               {columns.map((col) => (
-                <TableHead key={col.key}>{col.label}</TableHead>
+                <TableHead key={col.key} className="text-xs font-semibold uppercase tracking-wide">{col.label}</TableHead>
               ))}
-              {actions && <TableHead>Actions</TableHead>}
+              {actions && <TableHead className="text-xs font-semibold uppercase tracking-wide text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-8 text-muted-foreground">
-                  No data found
+              <TableRow className="hover:bg-transparent">
+                <TableCell colSpan={columns.length + (actions ? 1 : 0)} className="text-center py-14">
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <div className="grid place-items-center w-12 h-12 rounded-full bg-muted">
+                      <Search size={20} />
+                    </div>
+                    <p className="text-sm font-medium">No data found</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               data.map((item, index) => (
-                <TableRow key={index}>
+                <TableRow key={index} className="group">
                   {columns.map((col) => (
-                    <TableCell key={col.key}>
+                    <TableCell key={col.key} className="text-sm">
                       {col.render ? col.render(item) : String(item[col.key] ?? '')}
                     </TableCell>
                   ))}
-                  {actions && <TableCell>{actions(item)}</TableCell>}
+                  {actions && <TableCell className="text-right"><div className="flex justify-end">{actions(item)}</div></TableCell>}
                 </TableRow>
               ))
             )}

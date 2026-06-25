@@ -87,67 +87,91 @@ export default function Sidebar() {
     <>
       {/* Mobile toggle */}
       <button
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white dark:bg-gray-800 rounded-md shadow-md"
+        className="lg:hidden fixed top-3.5 left-4 z-50 p-2.5 glass border border-sidebar-border rounded-xl shadow-sm text-foreground"
         onClick={() => setIsOpen(!isOpen)}
+        aria-label="Toggle menu"
       >
         {isOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
       {/* Overlay */}
       {isOpen && (
-        <div className="lg:hidden fixed inset-0 bg-black/50 z-40" onClick={() => setIsOpen(false)} />
+        <div className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-fade-in" onClick={() => setIsOpen(false)} />
       )}
 
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed top-0 left-0 z-40 h-full w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 transition-transform duration-300 ease-in-out",
+          "fixed top-0 left-0 z-40 h-full w-64 bg-sidebar border-r border-sidebar-border transition-transform duration-300 ease-in-out",
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Logo */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">E-Procurement</h1>
-            <p className="text-xs text-gray-500 mt-1">{user.role.replace(/_/g, ' ')}</p>
+          <div className="px-5 h-[73px] flex items-center gap-3 border-b border-sidebar-border">
+            <div className="grid place-items-center w-10 h-10 rounded-xl brand-gradient text-white shadow-md shrink-0">
+              <Gavel size={20} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-base font-bold leading-tight brand-text">E-Procurement</h1>
+              <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase truncate">
+                {user.role.replace(/_/g, ' ')}
+              </p>
+            </div>
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto p-4 space-y-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                  pathname === item.href
-                    ? "bg-blue-50 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
-                    : "text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
-                )}
-              >
-                {item.icon}
-                {item.label}
-              </Link>
-            ))}
+          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+            <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/70">
+              Menu
+            </p>
+            {navItems.map((item) => {
+              const active = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setIsOpen(false)}
+                  className={cn(
+                    "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
+                    active
+                      ? "bg-accent text-accent-foreground shadow-sm"
+                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground hover:translate-x-0.5"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full brand-gradient transition-opacity",
+                      active ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  <span className={cn("transition-colors", active ? "text-primary" : "group-hover:text-primary")}>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* User Info & Logout */}
-          <div className="p-4 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                <span className="text-sm font-medium text-blue-700 dark:text-blue-300">
-                  {user.first_name[0]}{user.last_name[0]}
-                </span>
+          <div className="p-3 border-t border-sidebar-border">
+            <div className="flex items-center gap-3 mb-2 p-2 rounded-xl">
+              <div className="w-9 h-9 rounded-full brand-gradient p-[2px] shrink-0">
+                <div className="w-full h-full rounded-full bg-card grid place-items-center">
+                  <span className="text-xs font-bold brand-text">
+                    {user.first_name[0]}{user.last_name[0]}
+                  </span>
+                </div>
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{user.first_name} {user.last_name}</p>
-                <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                <p className="text-sm font-semibold truncate text-foreground">{user.first_name} {user.last_name}</p>
+                <p className="text-xs text-muted-foreground truncate">{user.email}</p>
               </div>
             </div>
             <button
               onClick={() => { logout(); window.location.href = '/login'; }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+              className="flex items-center gap-2 w-full px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-xl transition-colors"
             >
               <LogOut size={18} />
               Logout

@@ -10,14 +10,31 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, Eye, Edit, FileText } from 'lucide-react';
-import { Tender, TenderStatus, ProcurementMethod } from '@/types';
+import { Plus, Eye } from 'lucide-react';
+import { Tender } from '@/types';
+
+const emptyForm = {
+  title: '',
+  description: '',
+  category_id: '',
+  procurement_method: 'OPEN',
+  budget_estimate: '',
+  currency: 'TZS',
+  submission_deadline: '',
+  opening_date: '',
+  closing_date: '',
+  procurement_request_id: '',
+};
 
 export default function TenderManagement() {
   const [tenders, setTenders] = useState<Tender[]>([]);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
+  const [form, setForm] = useState({ ...emptyForm });
+  const [createError, setCreateError] = useState('');
+  const [createLoading, setCreateLoading] = useState(false);
+  const [selectedTender, setSelectedTender] = useState<any>(null);
 
   useEffect(() => {
     fetchData();
@@ -39,26 +56,31 @@ export default function TenderManagement() {
 
   const handleCreateTender = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
+    setCreateError('');
+    setCreateLoading(true);
+
     try {
       await axios.post('/api/tenders', {
-        title: formData.get('title'),
-        description: formData.get('description'),
-        category_id: formData.get('category_id'),
-        procurement_method: formData.get('procurement_method'),
-        budget_estimate: formData.get('budget_estimate'),
-        currency: formData.get('currency') || 'TZS',
-        submission_deadline: formData.get('submission_deadline'),
-        opening_date: formData.get('opening_date'),
-        closing_date: formData.get('closing_date'),
+        title: form.title,
+        description: form.description,
+        category_id: form.category_id || undefined,
+        procurement_method: form.procurement_method,
+        budget_estimate: form.budget_estimate ? Number(form.budget_estimate) : undefined,
+        currency: form.currency || 'TZS',
+        submission_deadline: form.submission_deadline,
+        opening_date: form.opening_date,
+        closing_date: form.closing_date,
+        procurement_request_id: form.procurement_request_id || undefined,
         evaluation_criteria: {},
       });
+      setForm({ ...emptyForm });
       setIsCreateOpen(false);
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create tender:', error);
+      setCreateError(error.response?.data?.message || 'Failed to create tender');
     }
+    setCreateLoading(false);
   };
 
   const handleTenderAction = async (tenderId: string, action: string) => {
@@ -111,17 +133,20 @@ export default function TenderManagement() {
                 <DialogTitle>Create New Tender</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleCreateTender} className="space-y-4">
+                {createError && (
+                  <div className="p-3 text-sm text-white bg-destructive rounded-md">{createError}</div>
+                )}
                 <div>
                   <Label htmlFor="title">Title</Label>
-                  <Input id="title" name="title" required />
+                  <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
                 </div>
                 <div>
                   <Label htmlFor="description">Description</Label>
-                  <Input id="description" name="description" required />
+                  <Input id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
                 </div>
                 <div>
                   <Label htmlFor="category_id">Category</Label>
-                  <Select name="category_id">
+                  <Select value={form.category_id} onValueChange={(value) => setForm({ ...form, category_id: value })}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -134,7 +159,7 @@ export default function TenderManagement() {
                 </div>
                 <div>
                   <Label htmlFor="procurement_method">Procurement Method</Label>
-                  <Select name="procurement_method" defaultValue="OPEN">
+                  <Select value={form.procurement_method} onValueChange={(value) => setForm({ ...form, procurement_method: value })}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -149,30 +174,30 @@ export default function TenderManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="budget_estimate">Budget Estimate</Label>
-                    <Input id="budget_estimate" name="budget_estimate" type="number" />
+                    <Input id="budget_estimate" type="number" value={form.budget_estimate} onChange={(e) => setForm({ ...form, budget_estimate: e.target.value })} />
                   </div>
                   <div>
                     <Label htmlFor="currency">Currency</Label>
-                    <Input id="currency" name="currency" defaultValue="TZS" />
+                    <Input id="currency" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="submission_deadline">Submission Deadline</Label>
-                    <Input id="submission_deadline" name="submission_deadline" type="datetime-local" required />
+                    <Input id="submission_deadline" type="datetime-local" value={form.submission_deadline} onChange={(e) => setForm({ ...form, submission_deadline: e.target.value })} required />
                   </div>
                   <div>
                     <Label htmlFor="opening_date">Opening Date</Label>
-                    <Input id="opening_date" name="opening_date" type="datetime-local" required />
+                    <Input id="opening_date" type="datetime-local" value={form.opening_date} onChange={(e) => setForm({ ...form, opening_date: e.target.value })} required />
                   </div>
                 </div>
                 <div>
                   <Label htmlFor="closing_date">Closing Date</Label>
-                  <Input id="closing_date" name="closing_date" type="datetime-local" required />
+                  <Input id="closing_date" type="datetime-local" value={form.closing_date} onChange={(e) => setForm({ ...form, closing_date: e.target.value })} required />
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
-                  <Button type="submit">Create Tender</Button>
+                  <Button type="submit" disabled={createLoading}>{createLoading ? 'Creating...' : 'Create Tender'}</Button>
                 </div>
               </form>
             </DialogContent>
@@ -202,13 +227,59 @@ export default function TenderManagement() {
                     </Button>
                   </>
                 )}
-                <Button size="sm" variant="ghost">
+                <Button size="sm" variant="ghost" onClick={() => setSelectedTender(item)}>
                   <Eye size={16} />
                 </Button>
               </div>
             )}
           />
         )}
+
+        <Dialog open={!!selectedTender} onOpenChange={() => setSelectedTender(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Tender Details</DialogTitle>
+            </DialogHeader>
+            {selectedTender && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tender Number</p>
+                    <p className="font-medium">{selectedTender.tender_number}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Status</p>
+                    <div className="font-medium">{getStatusBadge(selectedTender.status)}</div>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Method</p>
+                    <p className="font-medium">{selectedTender.procurement_method}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Budget Estimate</p>
+                    <p className="font-medium">{selectedTender.budget_estimate ? `TZS ${Number(selectedTender.budget_estimate).toLocaleString()}` : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Submission Deadline</p>
+                    <p className="font-medium">{selectedTender.submission_deadline ? new Date(selectedTender.submission_deadline).toLocaleString() : 'N/A'}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Closing Date</p>
+                    <p className="font-medium">{selectedTender.closing_date ? new Date(selectedTender.closing_date).toLocaleString() : 'N/A'}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Title</p>
+                  <p className="font-medium">{selectedTender.title}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Description</p>
+                  <p className="font-medium">{selectedTender.description}</p>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

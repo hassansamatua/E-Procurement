@@ -48,6 +48,8 @@ export const updateUserSchema = z.object({
   last_name: z.string().min(2).optional(),
   phone: z.string().optional(),
   department: z.string().optional(),
+  role_id: z.string().uuid('Invalid role ID').optional(),
+  organization_id: z.string().uuid('Invalid organization ID').optional().nullable(),
   is_active: z.boolean().optional(),
   is_suspended: z.boolean().optional(),
 });
@@ -89,7 +91,7 @@ export const supplierRegistrationSchema = z.object({
 export const procurementRequestSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  category_id: z.string().uuid().optional(),
+  category_id: z.string().min(1, 'Category ID is required').optional(),
   estimated_budget: z.number().positive('Budget must be positive').optional(),
   currency: z.string().default('TZS'),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
