@@ -15,21 +15,30 @@ const pool = new Pool({
 
 export default pool;
 
+// Helper function to convert MySQL ? placeholders to PostgreSQL $1, $2, etc.
+function convertSqlToPostgres(sql: string): string {
+  let paramIndex = 0;
+  return sql.replace(/\?/g, () => `$${++paramIndex}`);
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function query<T = any>(sql: string, params?: any[]): Promise<T> {
-  const result = await pool.query(sql, params);
+  const postgresSql = convertSqlToPostgres(sql);
+  const result = await pool.query(postgresSql, params);
   return result.rows as unknown as T;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function queryOne<T = any>(sql: string, params?: any[]): Promise<T | null> {
-  const result = await pool.query(sql, params);
+  const postgresSql = convertSqlToPostgres(sql);
+  const result = await pool.query(postgresSql, params);
   return result.rows.length > 0 ? (result.rows[0] as unknown as T) : null;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function execute(sql: string, params?: any[]): Promise<any> {
-  const result = await pool.query(sql, params);
+  const postgresSql = convertSqlToPostgres(sql);
+  const result = await pool.query(postgresSql, params);
   return result;
 }
 
