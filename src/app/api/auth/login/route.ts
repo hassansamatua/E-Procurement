@@ -129,6 +129,7 @@ export async function POST(req: NextRequest) {
     });
   } catch (error) {
     console.error('Login error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     return NextResponse.json<ApiResponse>(
       { success: false, message: 'Internal server error' },
       { status: 500 }

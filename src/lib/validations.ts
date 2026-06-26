@@ -103,8 +103,8 @@ export const procurementRequestSchema = z.object({
 export const tenderSchema = z.object({
   title: z.string().min(5, 'Title must be at least 5 characters'),
   description: z.string().min(10, 'Description must be at least 10 characters'),
-  category_id: z.string().uuid().optional(),
-  procurement_request_id: z.string().uuid().optional(),
+  category_id: z.string().optional(),
+  procurement_request_id: z.string().optional(),
   procurement_method: z.enum(['OPEN', 'RESTRICTED', 'DIRECT', 'REQUEST_FOR_QUOTATION']).default('OPEN'),
   budget_estimate: z.number().positive().optional(),
   currency: z.string().default('TZS'),

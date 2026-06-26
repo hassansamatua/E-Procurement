@@ -24,6 +24,9 @@ const emptyForm = {
   opening_date: '',
   closing_date: '',
   procurement_request_id: '',
+  document: null as File | null,
+  selectedRequests: [] as string[],
+  selectedSuppliers: [] as string[],
 };
 
 export default function TenderManagement() {
@@ -31,6 +34,8 @@ export default function TenderManagement() {
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
+  const [approvedRequests, setApprovedRequests] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<any[]>([]);
   const [form, setForm] = useState({ ...emptyForm });
   const [createError, setCreateError] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
@@ -42,12 +47,16 @@ export default function TenderManagement() {
 
   const fetchData = async () => {
     try {
-      const [tenderRes, catRes] = await Promise.all([
+      const [tenderRes, catRes, reqRes, supRes] = await Promise.all([
         axios.get('/api/tenders?limit=50'),
         axios.get('/api/categories'),
+        axios.get('/api/procurement-requests?limit=100'),
+        axios.get('/api/suppliers?limit=100'),
       ]);
       setTenders(tenderRes.data.data || []);
       setCategories(catRes.data.data || []);
+      setApprovedRequests((reqRes.data.data || []).filter((r: any) => r.status === 'APPROVED'));
+      setSuppliers((supRes.data.data || []).filter((s: any) => s.status === 'APPROVED'));
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
@@ -59,10 +68,27 @@ export default function TenderManagement() {
     setCreateError('');
     setCreateLoading(true);
 
+    // Validate quotation method requires minimum 3 suppliers
+    if (form.procurement_method === 'REQUEST_FOR_QUOTATION' && form.selectedSuppliers.length < 3) {
+      setCreateError('Minimum 3 suppliers required for Request for Quotation');
+      setCreateLoading(false);
+      return;
+    }
+
     try {
+      // Upload document first
+      let documentUrl = '';
+      if (form.document) {
+        const formData = new FormData();
+        formData.append('file', form.document);
+        formData.append('category', 'tender');
+        const uploadRes = await axios.post('/api/upload', formData);
+        documentUrl = uploadRes.data.data.url;
+      }
+
       await axios.post('/api/tenders', {
         title: form.title,
-        description: form.description,
+        description: form.description || 'Tender document uploaded',
         category_id: form.category_id || undefined,
         procurement_method: form.procurement_method,
         budget_estimate: form.budget_estimate ? Number(form.budget_estimate) : undefined,
@@ -72,6 +98,7 @@ export default function TenderManagement() {
         closing_date: form.closing_date,
         procurement_request_id: form.procurement_request_id || undefined,
         evaluation_criteria: {},
+        selected_suppliers: form.selectedSuppliers,
       });
       setForm({ ...emptyForm });
       setIsCreateOpen(false);
@@ -141,8 +168,13 @@ export default function TenderManagement() {
                   <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Input id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} required />
+                  <Label htmlFor="document">Tender Document (PDF) *</Label>
+                  <Input id="document" type="file" accept=".pdf" onChange={(e) => setForm({ ...form, document: e.target.files?.[0] || null })} required />
+                  <p className="text-xs text-muted-foreground mt-1">Upload the tender document (PDF format)</p>
+                </div>
+                <div>
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Input id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Brief description of the tender" />
                 </div>
                 <div>
                   <Label htmlFor="category_id">Category</Label>
@@ -170,6 +202,67 @@ export default function TenderManagement() {
                       <SelectItem value="REQUEST_FOR_QUOTATION">Request for Quotation</SelectItem>
                     </SelectContent>
                   </Select>
+                </div>
+                {form.procurement_method === 'REQUEST_FOR_QUOTATION' && (
+                  <div>
+                    <Label>Select Suppliers (Minimum 3 required) *</Label>
+                    <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                      {suppliers.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No approved suppliers available</p>
+                      ) : (
+                        suppliers.map((sup) => (
+                          <div key={sup.id} className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              id={`sup-${sup.id}`}
+                              checked={form.selectedSuppliers.includes(sup.id)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setForm({ ...form, selectedSuppliers: [...form.selectedSuppliers, sup.id] });
+                                } else {
+                                  setForm({ ...form, selectedSuppliers: form.selectedSuppliers.filter((id) => id !== sup.id) });
+                                }
+                              }}
+                            />
+                            <label htmlFor={`sup-${sup.id}`} className="text-sm cursor-pointer">
+                              {sup.company_name} - {sup.contact_person || 'N/A'}
+                            </label>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    {form.selectedSuppliers.length > 0 && form.selectedSuppliers.length < 3 && (
+                      <p className="text-xs text-destructive mt-1">Minimum 3 suppliers required for quotation</p>
+                    )}
+                  </div>
+                )}
+                <div>
+                  <Label>Link to Approved Requests (Optional)</Label>
+                  <div className="border rounded-md p-3 max-h-40 overflow-y-auto space-y-2">
+                    {approvedRequests.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No approved requests available</p>
+                    ) : (
+                      approvedRequests.map((req) => (
+                        <div key={req.id} className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id={`req-${req.id}`}
+                            checked={form.selectedRequests.includes(req.id)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setForm({ ...form, selectedRequests: [...form.selectedRequests, req.id] });
+                              } else {
+                                setForm({ ...form, selectedRequests: form.selectedRequests.filter((id) => id !== req.id) });
+                              }
+                            }}
+                          />
+                          <label htmlFor={`req-${req.id}`} className="text-sm cursor-pointer">
+                            {req.request_number} - {req.title} (TZS {Number(req.estimated_budget).toLocaleString()})
+                          </label>
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

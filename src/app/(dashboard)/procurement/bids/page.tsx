@@ -7,6 +7,8 @@ import DataTable from '@/components/shared/DataTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Eye, Award } from 'lucide-react';
 
 export default function BidsManagement() {
@@ -14,6 +16,9 @@ export default function BidsManagement() {
   const [loading, setLoading] = useState(true);
   const [selectedBid, setSelectedBid] = useState<any>(null);
   const [awarding, setAwarding] = useState<string | null>(null);
+  const [negotiationDate, setNegotiationDate] = useState('');
+  const [isAwardDialogOpen, setIsAwardDialogOpen] = useState(false);
+  const [awardBid, setAwardBid] = useState<any>(null);
 
   useEffect(() => {
     fetchBids();
@@ -30,11 +35,23 @@ export default function BidsManagement() {
   };
 
   const handleAward = async (bid: any) => {
-    if (!confirm(`Award this tender to ${bid.supplier_name}? All other bids will be rejected.`)) return;
-    setAwarding(bid.id);
+    setAwardBid(bid);
+    setNegotiationDate('');
+    setIsAwardDialogOpen(true);
+  };
+
+  const confirmAward = async () => {
+    if (!awardBid) return;
+    setAwarding(awardBid.id);
     try {
-      await axios.patch('/api/evaluations', { tenderId: bid.tender_id, bidId: bid.id });
+      await axios.patch('/api/evaluations', { 
+        tenderId: awardBid.tender_id, 
+        bidId: awardBid.id,
+        negotiationDate: negotiationDate 
+      });
       await fetchBids();
+      setIsAwardDialogOpen(false);
+      setAwardBid(null);
     } catch (error: any) {
       console.error('Failed to award tender:', error);
       alert(error.response?.data?.message || 'Failed to award tender');
@@ -142,6 +159,43 @@ export default function BidsManagement() {
                     <p className="font-medium">{selectedBid.notes}</p>
                   </div>
                 )}
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={isAwardDialogOpen} onOpenChange={setIsAwardDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Award Tender</DialogTitle>
+            </DialogHeader>
+            {awardBid && (
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Supplier</p>
+                  <p className="font-medium">{awardBid.supplier_name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Bid Amount</p>
+                  <p className="font-medium">{awardBid.bid_amount ? `TZS ${Number(awardBid.bid_amount).toLocaleString()}` : 'N/A'}</p>
+                </div>
+                <div>
+                  <Label htmlFor="negotiation_date">Contract Negotiation Date</Label>
+                  <Input
+                    id="negotiation_date"
+                    type="date"
+                    value={negotiationDate}
+                    onChange={(e) => setNegotiationDate(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Date for the winner to come for contract negotiation</p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button type="button" variant="outline" onClick={() => setIsAwardDialogOpen(false)}>Cancel</Button>
+                  <Button type="button" disabled={awarding === awardBid.id} onClick={confirmAward}>
+                    {awarding === awardBid.id ? 'Awarding...' : 'Confirm Award'}
+                  </Button>
+                </div>
               </div>
             )}
           </DialogContent>

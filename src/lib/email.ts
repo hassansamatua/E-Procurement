@@ -1,3 +1,30 @@
+// // DEPLOYMENT: Resend (Email) - Uncomment for production deployment
+// import { Resend } from 'resend';
+
+// const resend = new Resend(process.env.RESEND_API_KEY);
+
+// interface EmailOptions {
+//   to: string;
+//   subject: string;
+//   html: string;
+// }
+
+// export async function sendEmail(options: EmailOptions): Promise<boolean> {
+//   try {
+//     await resend.emails.send({
+//       from: process.env.RESEND_FROM_EMAIL || 'noreply@eprocurement.com',
+//       to: options.to,
+//       subject: options.subject,
+//       html: options.html,
+//     });
+//     return true;
+//   } catch (error) {
+//     console.error('Email send failed:', error);
+//     return false;
+//   }
+// }
+
+// LOCAL: Nodemailer (SMTP) - Active for local development
 import nodemailer from 'nodemailer';
 import { queryOne } from './db';
 

@@ -189,9 +189,9 @@ async function handlePatch(req: NextRequest) {
       }
     }
 
-    // Notify losing suppliers
-    const losingBids = await query<{ supplier_id: string }[]>(
-      'SELECT supplier_id FROM bids WHERE tender_id = ? AND id != ? AND status = ?',
+    // Notify losing suppliers with their ranking position
+    const losingBids = await query<{ supplier_id: string; rank: number }[]>(
+      'SELECT supplier_id, `rank` FROM bids WHERE tender_id = ? AND id != ? AND status = ?',
       [tenderId, bidId, 'REJECTED']
     );
 
@@ -205,7 +205,7 @@ async function handlePatch(req: NextRequest) {
         await createNotification({
           userId: loserSupplier.user_id,
           title: 'Bid Result',
-          message: `Your bid for "${tender.title}" was unsuccessful. Thank you for your participation.`,
+          message: `Your bid for "${tender.title}" was unsuccessful. Your ranking position was #${loser.rank}. Thank you for your participation.`,
           type: 'WARNING',
           category: 'bid_unsuccessful',
           referenceId: tenderId,
@@ -213,7 +213,11 @@ async function handlePatch(req: NextRequest) {
           sendEmail: true,
           emailTo: loserSupplier.email,
           emailTemplate: 'bid_unsuccessful',
-          emailVariables: { contact_person: loserSupplier.contact_person, tender_title: tender.title },
+          emailVariables: { 
+            contact_person: loserSupplier.contact_person, 
+            tender_title: tender.title,
+            rank: String(loser.rank)
+          },
         });
       }
     }

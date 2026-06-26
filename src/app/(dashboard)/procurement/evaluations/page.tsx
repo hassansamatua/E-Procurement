@@ -13,11 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { ClipboardCheck } from 'lucide-react';
 
 const emptyScores = {
-  technical_score: '',
-  financial_score: '',
-  experience_score: '',
-  compliance_score: '',
   comments: '',
+  document: null as File | null,
 };
 
 export default function ProcurementEvaluationsPage() {
@@ -68,15 +65,18 @@ export default function ProcurementEvaluationsPage() {
     setScoreLoading(true);
 
     try {
-      await axios.post('/api/evaluations', {
-        bid_id: scoreBid.id,
-        technical_score: Number(scores.technical_score),
-        financial_score: Number(scores.financial_score),
-        experience_score: Number(scores.experience_score),
-        compliance_score: Number(scores.compliance_score),
-        comments: scores.comments || undefined,
-      });
-      setScoreSuccess('Evaluation submitted successfully');
+      // Upload evaluation document first
+      let documentUrl = '';
+      if (scores.document) {
+        const formData = new FormData();
+        formData.append('file', scores.document);
+        formData.append('category', 'evaluation');
+        const uploadRes = await axios.post('/api/upload', formData);
+        documentUrl = uploadRes.data.data.url;
+      }
+
+      // Evaluation is done manually - just upload the document
+      setScoreSuccess('Evaluation document uploaded successfully');
       setTimeout(() => {
         setScoreBid(null);
         fetchData();
@@ -157,31 +157,18 @@ export default function ProcurementEvaluationsPage() {
                   <p className="text-sm text-muted-foreground">Bid</p>
                   <p className="font-medium">{scoreBid.bid_number} - {scoreBid.supplier_name}</p>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="technical_score">Technical (0-100)</Label>
-                    <Input id="technical_score" type="number" min={0} max={100} value={scores.technical_score} onChange={(e) => setScores({ ...scores, technical_score: e.target.value })} required />
-                  </div>
-                  <div>
-                    <Label htmlFor="financial_score">Financial (0-100)</Label>
-                    <Input id="financial_score" type="number" min={0} max={100} value={scores.financial_score} onChange={(e) => setScores({ ...scores, financial_score: e.target.value })} required />
-                  </div>
-                  <div>
-                    <Label htmlFor="experience_score">Experience (0-100)</Label>
-                    <Input id="experience_score" type="number" min={0} max={100} value={scores.experience_score} onChange={(e) => setScores({ ...scores, experience_score: e.target.value })} required />
-                  </div>
-                  <div>
-                    <Label htmlFor="compliance_score">Compliance (0-100)</Label>
-                    <Input id="compliance_score" type="number" min={0} max={100} value={scores.compliance_score} onChange={(e) => setScores({ ...scores, compliance_score: e.target.value })} required />
-                  </div>
+                <div>
+                  <Label htmlFor="document">Evaluation Results Document (PDF) *</Label>
+                  <Input id="document" type="file" accept=".pdf" onChange={(e) => setScores({ ...scores, document: e.target.files?.[0] || null })} required />
+                  <p className="text-xs text-muted-foreground mt-1">Upload the evaluation results document (PDF format). Evaluation is done manually offline.</p>
                 </div>
                 <div>
-                  <Label htmlFor="comments">Comments</Label>
-                  <Textarea id="comments" value={scores.comments} onChange={(e) => setScores({ ...scores, comments: e.target.value })} />
+                  <Label htmlFor="comments">Comments (Optional)</Label>
+                  <Textarea id="comments" value={scores.comments} onChange={(e) => setScores({ ...scores, comments: e.target.value })} placeholder="Any additional notes about the evaluation" />
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button type="button" variant="outline" onClick={() => setScoreBid(null)}>Cancel</Button>
-                  <Button type="submit" disabled={scoreLoading}>{scoreLoading ? 'Submitting...' : 'Submit Evaluation'}</Button>
+                  <Button type="submit" disabled={scoreLoading}>{scoreLoading ? 'Uploading...' : 'Upload Evaluation'}</Button>
                 </div>
               </form>
             )}

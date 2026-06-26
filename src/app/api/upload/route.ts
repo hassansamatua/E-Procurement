@@ -1,4 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
+// // DEPLOYMENT: Cloudinary - Uncomment for production deployment
+// import { v2 as cloudinary } from 'cloudinary';
+
+// cloudinary.config({
+//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+//   api_key: process.env.CLOUDINARY_API_KEY,
+//   api_secret: process.env.CLOUDINARY_API_SECRET,
+// });
+
+// LOCAL: Local file upload - Active for local development
 import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -55,17 +65,51 @@ async function handlePost(req: NextRequest) {
     }
 
     // Validate file type
-    const fileExtension = path.extname(file.name).toLowerCase();
+    const fileExtension = file.name.split('.').pop()?.toLowerCase() || '';
     const mimeType = file.type;
-    
+
     const allowedExtensions = ALLOWED_FILE_TYPES[mimeType as keyof typeof ALLOWED_FILE_TYPES];
-    if (!allowedExtensions || !allowedExtensions.includes(fileExtension)) {
+    if (!allowedExtensions || !allowedExtensions.includes(`.${fileExtension}`)) {
       return NextResponse.json<ApiResponse>(
         { success: false, message: 'Invalid file type' },
         { status: 400 }
       );
     }
 
+    // // DEPLOYMENT: Cloudinary upload - Uncomment for production deployment
+    // const bytes = await file.arrayBuffer();
+    // const buffer = Buffer.from(bytes);
+    // const timestamp = Date.now();
+    // const randomString = Math.random().toString(36).substring(2, 15);
+    // const publicId = `${category}/${timestamp}-${randomString}`;
+
+    // const uploadResult = await new Promise((resolve: (value: any) => void, reject: (reason?: any) => void) => {
+    //   cloudinary.uploader.upload_stream(
+    //     {
+    //       public_id: publicId,
+    //       resource_type: 'auto',
+    //       folder: 'e-procurement',
+    //     },
+    //     (error: any, result: any) => {
+    //       if (error) reject(error);
+    //       else resolve(result);
+    //     }
+    //   ).end(buffer);
+    // });
+
+    // return NextResponse.json<ApiResponse>({
+    //   success: true,
+    //   message: 'File uploaded successfully',
+    //   data: {
+    //     filename: (uploadResult as any).public_id,
+    //     originalName: file.name,
+    //     size: file.size,
+    //     mimeType,
+    //     url: (uploadResult as any).secure_url,
+    //   },
+    // });
+
+    // LOCAL: Local file upload - Active for local development
     // Create upload directory if it doesn't exist
     const uploadDir = path.join(process.cwd(), 'public', 'uploads', category);
     if (!existsSync(uploadDir)) {

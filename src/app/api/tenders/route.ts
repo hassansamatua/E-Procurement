@@ -81,9 +81,11 @@ async function handlePost(req: NextRequest) {
   try {
     const user = getUserFromRequest(req);
     const body = await req.json();
+    console.log('Tender creation request body:', body);
     const validation = tenderSchema.safeParse(body);
 
     if (!validation.success) {
+      console.log('Tender validation errors:', validation.error.flatten().fieldErrors);
       return NextResponse.json<ApiResponse>(
         { success: false, message: 'Validation failed', errors: validation.error.flatten().fieldErrors as Record<string, string[]> },
         { status: 400 }
@@ -100,7 +102,7 @@ async function handlePost(req: NextRequest) {
        status, evaluation_criteria, organization_id, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?)`,
       [
-        tenderId, tenderNumber, data.title, data.description, data.category_id || null,
+        tenderId, tenderNumber, data.title, data.description, null, // Set category_id to null for now
         data.procurement_request_id || null, data.procurement_method, data.budget_estimate || null,
         data.currency, data.submission_deadline, data.opening_date, data.closing_date,
         data.evaluation_criteria ? JSON.stringify(data.evaluation_criteria) : null,
@@ -141,6 +143,7 @@ async function handlePatch(req: NextRequest) {
   try {
     const user = getUserFromRequest(req);
     const body = await req.json();
+    console.log('Tender PATCH request body:', body);
     const { tenderId, action } = body;
 
     const tender = await queryOne<{ id: string; tender_number: string; title: string; status: string; organization_id: string }>(

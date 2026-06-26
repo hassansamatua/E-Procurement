@@ -19,6 +19,7 @@ export default function SupplierTendersPage() {
   const [bidAmount, setBidAmount] = useState('');
   const [bidCurrency, setBidCurrency] = useState('TZS');
   const [bidNotes, setBidNotes] = useState('');
+  const [bidDocument, setBidDocument] = useState<File | null>(null);
   const [bidLoading, setBidLoading] = useState(false);
   const [bidError, setBidError] = useState('');
   const [bidSuccess, setBidSuccess] = useState('');
@@ -44,6 +45,7 @@ export default function SupplierTendersPage() {
     setBidAmount('');
     setBidCurrency(tender.currency || 'TZS');
     setBidNotes('');
+    setBidDocument(null);
     setBidError('');
     setBidSuccess('');
   };
@@ -56,6 +58,16 @@ export default function SupplierTendersPage() {
     setBidLoading(true);
 
     try {
+      // Upload filled tender document first
+      let documentUrl = '';
+      if (bidDocument) {
+        const formData = new FormData();
+        formData.append('file', bidDocument);
+        formData.append('category', 'bid');
+        const uploadRes = await axios.post('/api/upload', formData);
+        documentUrl = uploadRes.data.data.url;
+      }
+
       await axios.post('/api/bids', {
         tender_id: bidTender.id,
         bid_amount: Number(bidAmount),
@@ -65,6 +77,7 @@ export default function SupplierTendersPage() {
       setBidSuccess('Bid submitted successfully');
       setBidAmount('');
       setBidNotes('');
+      setBidDocument(null);
       setTimeout(() => {
         setBidTender(null);
         setBidSuccess('');
@@ -194,6 +207,17 @@ export default function SupplierTendersPage() {
                 <div>
                   <p className="text-sm text-muted-foreground">Tender</p>
                   <p className="font-medium">{bidTender.title} ({bidTender.tender_number})</p>
+                </div>
+                <div>
+                  <Label htmlFor="bid_document">Filled Tender Document (PDF) *</Label>
+                  <Input
+                    id="bid_document"
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setBidDocument(e.target.files?.[0] || null)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Download the tender document, fill it, and upload the filled version</p>
                 </div>
                 <div>
                   <Label htmlFor="bid_amount">Bid Amount</Label>

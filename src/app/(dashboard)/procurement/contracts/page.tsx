@@ -25,6 +25,7 @@ const emptyContract = {
   end_date: '',
   signing_date: '',
   terms_and_conditions: '',
+  document: null as File | null,
 };
 
 export default function ContractsManagement() {
@@ -63,12 +64,22 @@ export default function ContractsManagement() {
     setCreateLoading(true);
 
     try {
+      // Upload document first
+      let documentUrl = '';
+      if (form.document) {
+        const formData = new FormData();
+        formData.append('file', form.document);
+        formData.append('category', 'contract');
+        const uploadRes = await axios.post('/api/upload', formData);
+        documentUrl = uploadRes.data.data.url;
+      }
+
       await axios.post('/api/contracts', {
         tender_id: form.tender_id,
         supplier_id: form.supplier_id,
         bid_id: form.bid_id || undefined,
         title: form.title,
-        description: form.description || undefined,
+        description: form.description || 'Contract document uploaded',
         contract_amount: form.contract_amount ? Number(form.contract_amount) : undefined,
         currency: form.currency || 'TZS',
         start_date: form.start_date,
@@ -143,8 +154,13 @@ export default function ContractsManagement() {
                   <Input id="title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
                 </div>
                 <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+                  <Label htmlFor="document">Signed Contract Document (PDF) *</Label>
+                  <Input id="document" type="file" accept=".pdf" onChange={(e) => setForm({ ...form, document: e.target.files?.[0] || null })} required />
+                  <p className="text-xs text-muted-foreground mt-1">Upload the manually negotiated and signed contract document (PDF format)</p>
+                </div>
+                <div>
+                  <Label htmlFor="description">Description (Optional)</Label>
+                  <Textarea id="description" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} placeholder="Brief description of the contract" />
                 </div>
                 <div>
                   <Label htmlFor="tender_id">Tender</Label>
