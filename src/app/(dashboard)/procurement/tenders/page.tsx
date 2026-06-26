@@ -317,14 +317,14 @@ export default function TenderManagement() {
                   </Button>
                 )}
                 {item.status === 'PUBLISHED' && (
-                  <>
-                    <Button size="sm" variant="outline" onClick={() => handleTenderAction(item.id as string, 'CLOSE')}>
-                      Close
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => handleTenderAction(item.id as string, 'EVALUATE')}>
-                      Evaluate
-                    </Button>
-                  </>
+                  <Button size="sm" variant="outline" onClick={() => handleTenderAction(item.id as string, 'CLOSE')}>
+                    Close
+                  </Button>
+                )}
+                {(item.status === 'PUBLISHED' || item.status === 'CLOSED') && (
+                  <Button size="sm" variant="outline" onClick={() => handleTenderAction(item.id as string, 'EVALUATE')}>
+                    Forward to Evaluation
+                  </Button>
                 )}
                 {item.status === 'EVALUATION_COMPLETE' && (
                   <Button size="sm" onClick={() => handleTenderAction(item.id as string, 'PUBLISH_AWARD')}>
