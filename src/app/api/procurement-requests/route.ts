@@ -48,9 +48,13 @@ async function handleGet(req: NextRequest) {
         whereClause += ' AND pr.organization_id = ? AND pr.status NOT IN (?, ?)';
         params.push(user.organizationId, 'DRAFT', 'PENDING_HOD');
         break;
+      case 'FINANCE_OFFICER':
+        whereClause += ' AND pr.organization_id = ? AND pr.status IN (?, ?, ?)';
+        params.push(user.organizationId, 'PENDING_FINANCE', 'PENDING_ACCOUNTING', 'FINANCE_REJECTED');
+        break;
       case 'ACCOUNTING_OFFICER':
         whereClause += ' AND pr.organization_id = ? AND pr.status IN (?, ?, ?)';
-        params.push(user.organizationId, 'PENDING_FINANCE', 'FINANCE_APPROVED', 'FINANCE_REJECTED');
+        params.push(user.organizationId, 'PENDING_ACCOUNTING', 'FINANCE_APPROVED', 'FINANCE_REJECTED');
         break;
       default:
         if (user.organizationId) {
@@ -228,6 +232,18 @@ async function handlePatch(req: NextRequest) {
         }
         break;
 
+      case 'FINANCE_OFFICER':
+        if (action === 'APPROVED') {
+          newStatus = 'PENDING_ACCOUNTING';
+          notificationTitle = 'Budget Approved';
+          notificationMessage = `Request "${request.title}" budget has been approved and forwarded to Accounting Officer.`;
+        } else {
+          newStatus = 'FINANCE_REJECTED';
+          notificationTitle = 'Budget Rejected';
+          notificationMessage = `Your request "${request.title}" budget has been rejected. Remarks: ${financial_remarks || 'N/A'}`;
+        }
+        break;
+
       case 'ACCOUNTING_OFFICER':
         if (action === 'APPROVED') {
           newStatus = 'APPROVED';
@@ -312,4 +328,4 @@ async function handlePatch(req: NextRequest) {
 
 export const GET = withAuth(handleGet);
 export const POST = withAuth(handlePost, ['STAFF']);
-export const PATCH = withAuth(handlePatch, ['HOD', 'PROCUREMENT_OFFICER', 'ACCOUNTING_OFFICER']);
+export const PATCH = withAuth(handlePatch, ['HOD', 'PROCUREMENT_OFFICER', 'FINANCE_OFFICER', 'ACCOUNTING_OFFICER']);
