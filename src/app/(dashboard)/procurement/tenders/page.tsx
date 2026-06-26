@@ -99,6 +99,7 @@ export default function TenderManagement() {
         procurement_request_id: form.procurement_request_id || undefined,
         evaluation_criteria: {},
         selected_suppliers: form.selectedSuppliers,
+        document_url: documentUrl,
       });
       setForm({ ...emptyForm });
       setIsCreateOpen(false);
