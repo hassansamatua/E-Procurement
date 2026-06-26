@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-// // DEPLOYMENT: Cloudinary - Uncomment for production deployment
-// import { v2 as cloudinary } from 'cloudinary';
+// DEPLOYMENT: Cloudinary - Active for production deployment
+import { v2 as cloudinary } from 'cloudinary';
 
-// cloudinary.config({
-//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-//   api_key: process.env.CLOUDINARY_API_KEY,
-//   api_secret: process.env.CLOUDINARY_API_SECRET,
-// });
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-// LOCAL: Local file upload - Active for local development
-import { writeFile, mkdir } from 'fs/promises';
-import { existsSync } from 'fs';
-import path from 'path';
+// LOCAL: Local file upload - Commented for production deployment
+// import { writeFile, mkdir } from 'fs/promises';
+// import { existsSync } from 'fs';
+// import path from 'path';
 import { withAuth, getUserFromRequest } from '@/middleware/withAuth';
 import { createAuditLog } from '@/lib/audit';
 import { ApiResponse } from '@/types';
@@ -76,59 +76,26 @@ async function handlePost(req: NextRequest) {
       );
     }
 
-    // // DEPLOYMENT: Cloudinary upload - Uncomment for production deployment
-    // const bytes = await file.arrayBuffer();
-    // const buffer = Buffer.from(bytes);
-    // const timestamp = Date.now();
-    // const randomString = Math.random().toString(36).substring(2, 15);
-    // const publicId = `${category}/${timestamp}-${randomString}`;
-
-    // const uploadResult = await new Promise((resolve: (value: any) => void, reject: (reason?: any) => void) => {
-    //   cloudinary.uploader.upload_stream(
-    //     {
-    //       public_id: publicId,
-    //       resource_type: 'auto',
-    //       folder: 'e-procurement',
-    //     },
-    //     (error: any, result: any) => {
-    //       if (error) reject(error);
-    //       else resolve(result);
-    //     }
-    //   ).end(buffer);
-    // });
-
-    // return NextResponse.json<ApiResponse>({
-    //   success: true,
-    //   message: 'File uploaded successfully',
-    //   data: {
-    //     filename: (uploadResult as any).public_id,
-    //     originalName: file.name,
-    //     size: file.size,
-    //     mimeType,
-    //     url: (uploadResult as any).secure_url,
-    //   },
-    // });
-
-    // LOCAL: Local file upload - Active for local development
-    // Create upload directory if it doesn't exist
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', category);
-    if (!existsSync(uploadDir)) {
-      await mkdir(uploadDir, { recursive: true });
-    }
-
-    // Generate unique filename
-    const timestamp = Date.now();
-    const randomString = Math.random().toString(36).substring(2, 15);
-    const filename = `${timestamp}-${randomString}${fileExtension}`;
-    const filepath = path.join(uploadDir, filename);
-
-    // Convert file to buffer and save
+    // DEPLOYMENT: Cloudinary upload - Active for production deployment
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-    await writeFile(filepath, buffer);
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 15);
+    const publicId = `${category}/${timestamp}-${randomString}`;
 
-    // Generate public URL
-    const publicUrl = `/uploads/${category}/${filename}`;
+    const uploadResult = await new Promise((resolve: (value: any) => void, reject: (reason?: any) => void) => {
+      cloudinary.uploader.upload_stream(
+        {
+          public_id: publicId,
+          resource_type: 'auto',
+          folder: 'e-procurement',
+        },
+        (error: any, result: any) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      ).end(buffer);
+    });
 
     await createAuditLog({
       userId: user.userId,
@@ -141,14 +108,54 @@ async function handlePost(req: NextRequest) {
       success: true,
       message: 'File uploaded successfully',
       data: {
-        filename,
+        filename: (uploadResult as any).public_id,
         originalName: file.name,
         size: file.size,
         mimeType,
-        url: publicUrl,
-        path: filepath,
+        url: (uploadResult as any).secure_url,
       },
     });
+
+    // LOCAL: Local file upload - Commented for production deployment
+    // // Create upload directory if it doesn't exist
+    // const uploadDir = path.join(process.cwd(), 'public', 'uploads', category);
+    // if (!existsSync(uploadDir)) {
+    //   await mkdir(uploadDir, { recursive: true });
+    // }
+
+    // // Generate unique filename
+    // const timestamp = Date.now();
+    // const randomString = Math.random().toString(36).substring(2, 15);
+    // const filename = `${timestamp}-${randomString}${fileExtension}`;
+    // const filepath = path.join(uploadDir, filename);
+
+    // // Convert file to buffer and save
+    // const bytes = await file.arrayBuffer();
+    // const buffer = Buffer.from(bytes);
+    // await writeFile(filepath, buffer);
+
+    // // Generate public URL
+    // const publicUrl = `/uploads/${category}/${filename}`;
+
+    // await createAuditLog({
+    //   userId: user.userId,
+    //   action: 'FILE_UPLOADED',
+    //   module: 'uploads',
+    //   description: `Uploaded file ${file.name} to ${category}`,
+    // });
+
+    // return NextResponse.json<ApiResponse>({
+    //   success: true,
+    //   message: 'File uploaded successfully',
+    //   data: {
+    //     filename,
+    //     originalName: file.name,
+    //     size: file.size,
+    //     mimeType,
+    //     url: publicUrl,
+    //     path: filepath,
+    //   },
+    // });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json<ApiResponse>(
