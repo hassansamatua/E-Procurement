@@ -96,6 +96,7 @@ async function handlePost(req: NextRequest) {
           public_id: publicId,
           resource_type: 'auto',
           type: 'upload',
+          access_mode: 'public',
         },
         (error: any, result: any) => {
           if (error) {
