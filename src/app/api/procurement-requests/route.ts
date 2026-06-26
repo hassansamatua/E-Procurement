@@ -49,12 +49,12 @@ async function handleGet(req: NextRequest) {
         params.push(user.organizationId, 'DRAFT', 'PENDING_HOD');
         break;
       case 'FINANCE_OFFICER':
-        whereClause += ' AND pr.organization_id = ? AND pr.status IN (?, ?, ?)';
-        params.push(user.organizationId, 'PENDING_FINANCE', 'PENDING_ACCOUNTING', 'FINANCE_REJECTED');
+        whereClause += ' AND pr.organization_id = ? AND pr.status IN (?, ?)';
+        params.push(user.organizationId, 'PENDING_FINANCE', 'FINANCE_REJECTED');
         break;
       case 'ACCOUNTING_OFFICER':
-        whereClause += ' AND pr.organization_id = ? AND pr.status IN (?, ?, ?)';
-        params.push(user.organizationId, 'PENDING_ACCOUNTING', 'FINANCE_APPROVED', 'FINANCE_REJECTED');
+        // Accounting Officer doesn't approve procurement requests, only final tender awards
+        whereClause += ' AND 1=0';
         break;
       default:
         if (user.organizationId) {
@@ -234,9 +234,9 @@ async function handlePatch(req: NextRequest) {
 
       case 'FINANCE_OFFICER':
         if (action === 'APPROVED') {
-          newStatus = 'PENDING_ACCOUNTING';
+          newStatus = 'APPROVED';
           notificationTitle = 'Budget Approved';
-          notificationMessage = `Request "${request.title}" budget has been approved and forwarded to Accounting Officer.`;
+          notificationMessage = `Request "${request.title}" budget has been approved and is ready for tender creation.`;
         } else {
           newStatus = 'FINANCE_REJECTED';
           notificationTitle = 'Budget Rejected';
@@ -285,9 +285,9 @@ async function handlePatch(req: NextRequest) {
     });
 
     // If approved by finance, also notify procurement officer
-    if (user.role === 'ACCOUNTING_OFFICER' && action === 'APPROVED') {
+    if (user.role === 'FINANCE_OFFICER' && action === 'APPROVED') {
       const procOfficer = await queryOne<{ id: string }>(
-        `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id 
+        `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id
          WHERE r.name = 'PROCUREMENT_OFFICER' AND u.organization_id = ? AND u.is_active = TRUE LIMIT 1`,
         [request.organization_id]
       );
