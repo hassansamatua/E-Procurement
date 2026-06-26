@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Eye, Gavel } from 'lucide-react';
+import { Eye, Gavel, Download } from 'lucide-react';
 
 export default function SupplierTendersPage() {
   const [tenders, setTenders] = useState<any[]>([]);
@@ -135,6 +135,16 @@ export default function SupplierTendersPage() {
                 <Button size="sm" variant="ghost" onClick={() => setSelectedTender(item)}>
                   <Eye size={16} />
                 </Button>
+                {(item.documents as any[]) && Array.isArray(item.documents) && (item.documents as any[]).length > 0 && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => window.open((item.documents as any[])[0].file_path, '_blank')}
+                    title="Download Tender Document"
+                  >
+                    <Download size={16} />
+                  </Button>
+                )}
                 {canBid(item) && (
                   <Button size="sm" variant="outline" onClick={() => openBidDialog(item)}>
                     <Gavel size={16} className="mr-1" />
