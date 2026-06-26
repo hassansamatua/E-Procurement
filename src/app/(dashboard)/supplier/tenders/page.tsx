@@ -187,7 +187,7 @@ export default function SupplierTendersPage() {
                   <p className="text-sm text-muted-foreground">Description</p>
                   <p className="font-medium">{selectedTender.description}</p>
                 </div>
-                {selectedTender.documents && selectedTender.documents.length > 0 && (
+                {selectedTender.documents && Array.isArray(selectedTender.documents) && selectedTender.documents.length > 0 ? (
                   <div>
                     <p className="text-sm text-muted-foreground">Tender Document</p>
                     <div className="space-y-2">
@@ -204,6 +204,11 @@ export default function SupplierTendersPage() {
                         </a>
                       ))}
                     </div>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tender Document</p>
+                    <p className="text-sm text-gray-500">No document available</p>
                   </div>
                 )}
               </div>
