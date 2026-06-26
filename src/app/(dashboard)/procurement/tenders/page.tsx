@@ -178,7 +178,9 @@ export default function TenderManagement() {
                 </div>
                 <div>
                   <Label htmlFor="category_id">Category</Label>
-                  <Select value={form.category_id} onValueChange={(value) => setForm({ ...form, category_id: value })}>
+                  <Select value={form.category_id} onValueChange={(value) => setForm({ ...form, category_id: value })} onOpenChange={(open) => {
+                    if (open) setIsCreateOpen(true);
+                  }}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select category" />
                     </SelectTrigger>
@@ -191,7 +193,9 @@ export default function TenderManagement() {
                 </div>
                 <div>
                   <Label htmlFor="procurement_method">Procurement Method</Label>
-                  <Select value={form.procurement_method} onValueChange={(value) => setForm({ ...form, procurement_method: value })}>
+                  <Select value={form.procurement_method} onValueChange={(value) => setForm({ ...form, procurement_method: value })} onOpenChange={(open) => {
+                    if (open) setIsCreateOpen(true);
+                  }}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
