@@ -7,6 +7,9 @@ import StatsCard from '@/components/shared/StatsCard';
 import DataTable from '@/components/shared/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { ClipboardCheck, FileText, DollarSign } from 'lucide-react';
 import { DashboardStats, ProcurementRequest } from '@/types';
 
@@ -15,6 +18,9 @@ export default function AccountingDashboard() {
   const [requests, setRequests] = useState<ProcurementRequest[]>([]);
   const [pendingAwards, setPendingAwards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedAward, setSelectedAward] = useState<any>(null);
+  const [contractSigningDate, setContractSigningDate] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -22,15 +28,14 @@ export default function AccountingDashboard() {
 
   const fetchData = async () => {
     try {
-      const [statsRes, reqRes, bidsRes] = await Promise.all([
+      const [statsRes, reqRes, tendersRes] = await Promise.all([
         axios.get('/api/dashboard'),
         axios.get('/api/procurement-requests?status=PENDING_FINANCE&limit=10'),
-        axios.get('/api/bids?limit=100'),
+        axios.get('/api/tenders?status=EVALUATION_COMPLETE&limit=20'),
       ]);
       setStats(statsRes.data.data);
       setRequests(reqRes.data.data || []);
-      // Filter bids that are ready for accounting officer final approval
-      setPendingAwards((bidsRes.data.data || []).filter((b: any) => b.status === 'EVALUATED'));
+      setPendingAwards(tendersRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
@@ -46,19 +51,37 @@ export default function AccountingDashboard() {
     }
   };
 
-  const handleFinalAwardApproval = async (bid: any) => {
-    if (!confirm(`Approve final award to ${bid.supplier_name}? This will notify the procurement officer to proceed with contract negotiation.`)) return;
-    try {
-      await axios.patch('/api/evaluations', { 
-        tenderId: bid.tender_id, 
-        bidId: bid.id,
-        action: 'FINAL_APPROVE'
-      });
-      fetchData();
-    } catch (error) {
-      console.error('Final approval failed:', error);
-      alert('Failed to approve award');
+  const handleAwardApproval = async () => {
+    if (!contractSigningDate) {
+      alert('Please select a contract signing date');
+      return;
     }
+
+    setSubmitting(true);
+    try {
+      // Get evaluation result for this tender
+      const evalRes = await axios.get(`/api/evaluation-results?tender_id=${selectedAward.id}`);
+      const evaluationResult = evalRes.data.data?.[0];
+
+      if (!evaluationResult) {
+        alert('Evaluation result not found');
+        setSubmitting(false);
+        return;
+      }
+
+      await axios.post('/api/awards', {
+        evaluation_result_id: evaluationResult.id,
+        contract_signing_date: contractSigningDate,
+      });
+
+      setSelectedAward(null);
+      setContractSigningDate('');
+      fetchData();
+    } catch (error: any) {
+      console.error('Award approval failed:', error);
+      alert(error.response?.data?.message || 'Failed to approve award');
+    }
+    setSubmitting(false);
   };
 
   const columns = [
@@ -70,12 +93,10 @@ export default function AccountingDashboard() {
   ];
 
   const awardColumns = [
-    { key: 'bid_number', label: 'Bid #' },
-    { key: 'tender_title', label: 'Tender' },
-    { key: 'supplier_name', label: 'Supplier' },
-    { key: 'bid_amount', label: 'Amount', render: (item: Record<string, unknown>) => item.bid_amount ? `TZS ${Number(item.bid_amount).toLocaleString()}` : 'N/A' },
-    { key: 'total_score', label: 'Score', render: (item: Record<string, unknown>) => item.total_score ? Number(item.total_score).toFixed(2) : 'N/A' },
-    { key: 'rank', label: 'Rank' },
+    { key: 'tender_number', label: 'Tender #' },
+    { key: 'title', label: 'Title' },
+    { key: 'budget_estimate', label: 'Budget', render: (item: Record<string, unknown>) => item.budget_estimate ? `TZS ${Number(item.budget_estimate).toLocaleString()}` : 'N/A' },
+    { key: 'status', label: 'Status', render: (item: Record<string, unknown>) => <Badge variant="outline">{item.status as string}</Badge> },
   ];
 
   return (
@@ -83,7 +104,7 @@ export default function AccountingDashboard() {
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">Accounting Officer Dashboard</h1>
-          <p className="text-muted-foreground">Review financial compliance for procurement requests</p>
+          <p className="text-muted-foreground">Review financial compliance and approve tender awards</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -111,18 +132,52 @@ export default function AccountingDashboard() {
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold mb-4">Pending Final Award Approvals</h2>
-          <p className="text-sm text-muted-foreground mb-4">Review evaluated bids and provide final approval for tender awards</p>
-          <DataTable
-            columns={awardColumns}
-            data={pendingAwards as unknown as Record<string, unknown>[]}
-            actions={(item) => (
-              <Button size="sm" onClick={() => handleFinalAwardApproval(item)}>
-                Final Approve
-              </Button>
-            )}
-          />
+          <h2 className="text-lg font-semibold mb-4">Pending Award Approvals</h2>
+          <p className="text-sm text-muted-foreground mb-4">Review evaluation results and approve tender awards</p>
+          {loading ? (
+            <div className="h-64 bg-muted rounded-lg animate-pulse" />
+          ) : (
+            <DataTable
+              columns={awardColumns}
+              data={pendingAwards as unknown as Record<string, unknown>[]}
+              actions={(item) => (
+                <Button size="sm" onClick={() => setSelectedAward(item)}>
+                  Review & Award
+                </Button>
+              )}
+            />
+          )}
         </div>
+
+        <Dialog open={!!selectedAward} onOpenChange={() => setSelectedAward(null)}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Approve Award: {selectedAward?.title}</DialogTitle>
+            </DialogHeader>
+            {selectedAward && (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="signingDate">Contract Signing Date *</Label>
+                  <Input
+                    id="signingDate"
+                    type="date"
+                    value={contractSigningDate}
+                    onChange={(e) => setContractSigningDate(e.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Date when the winner should come to sign the contract</p>
+                </div>
+                <Button
+                  onClick={handleAwardApproval}
+                  disabled={submitting}
+                  className="w-full"
+                >
+                  {submitting ? 'Approving...' : 'Approve Award'}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

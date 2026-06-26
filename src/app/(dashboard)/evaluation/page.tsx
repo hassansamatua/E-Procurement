@@ -7,13 +7,23 @@ import StatsCard from '@/components/shared/StatsCard';
 import DataTable from '@/components/shared/DataTable';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileCheck, ClipboardList, Award } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { FileCheck, ClipboardList, Award, Upload } from 'lucide-react';
 import { DashboardStats } from '@/types';
 
 export default function EvaluationDashboard() {
   const [stats, setStats] = useState<DashboardStats>({});
-  const [bids, setBids] = useState<any[]>([]);
+  const [tenders, setTenders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedTender, setSelectedTender] = useState<any>(null);
+  const [bids, setBids] = useState<any[]>([]);
+  const [evaluationDocument, setEvaluationDocument] = useState<File | null>(null);
+  const [winnerBidId, setWinnerBidId] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -21,28 +31,69 @@ export default function EvaluationDashboard() {
 
   const fetchData = async () => {
     try {
-      const [statsRes, bidsRes] = await Promise.all([
+      const [statsRes, tendersRes] = await Promise.all([
         axios.get('/api/dashboard'),
-        axios.get('/api/bids?status=SUBMITTED&limit=20'),
+        axios.get('/api/tenders?status=UNDER_EVALUATION&limit=20'),
       ]);
       setStats(statsRes.data.data);
-      setBids(bidsRes.data.data || []);
+      setTenders(tendersRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
     setLoading(false);
   };
 
-  const handleEvaluation = async (bid: any) => {
-    // Navigate to evaluation page for this bid
-    window.location.href = `/procurement/evaluations?tenderId=${bid.tender_id}`;
+  const handleEvaluate = async (tender: any) => {
+    setSelectedTender(tender);
+    try {
+      const bidsRes = await axios.get(`/api/bids?tender_id=${tender.id}`);
+      setBids(bidsRes.data.data || []);
+    } catch (error) {
+      console.error('Failed to fetch bids:', error);
+    }
+  };
+
+  const handleSubmitEvaluation = async () => {
+    if (!evaluationDocument || !winnerBidId) {
+      setSubmitError('Please upload evaluation document and select a winner');
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+
+    try {
+      // Upload evaluation document
+      const formData = new FormData();
+      formData.append('file', evaluationDocument);
+      formData.append('category', 'evaluation');
+      const uploadRes = await axios.post('/api/upload', formData);
+      const documentUrl = uploadRes.data.data.url;
+
+      // Submit evaluation results
+      await axios.post('/api/evaluation-results', {
+        tender_id: selectedTender.id,
+        evaluation_document_url: documentUrl,
+        winner_bid_id: winnerBidId,
+        remarks,
+      });
+
+      setSelectedTender(null);
+      setEvaluationDocument(null);
+      setWinnerBidId('');
+      setRemarks('');
+      fetchData();
+    } catch (error: any) {
+      setSubmitError(error.response?.data?.message || 'Failed to submit evaluation');
+    }
+    setSubmitting(false);
   };
 
   const columns = [
-    { key: 'bid_number', label: 'Bid #' },
-    { key: 'tender_title', label: 'Tender' },
-    { key: 'supplier_name', label: 'Supplier' },
-    { key: 'bid_amount', label: 'Amount', render: (item: Record<string, unknown>) => item.bid_amount ? `TZS ${Number(item.bid_amount).toLocaleString()}` : 'N/A' },
+    { key: 'tender_number', label: 'Tender #' },
+    { key: 'title', label: 'Title' },
+    { key: 'budget_estimate', label: 'Budget', render: (item: Record<string, unknown>) => item.budget_estimate ? `TZS ${Number(item.budget_estimate).toLocaleString()}` : 'N/A' },
+    { key: 'submission_deadline', label: 'Deadline', render: (item: Record<string, unknown>) => new Date(item.submission_deadline as string).toLocaleDateString() },
     { key: 'status', label: 'Status', render: (item: Record<string, unknown>) => <Badge variant="outline">{item.status as string}</Badge> },
   ];
 
@@ -55,23 +106,86 @@ export default function EvaluationDashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatsCard title="Pending Evaluations" value={bids.length} icon={<FileCheck size={24} />} />
+          <StatsCard title="Pending Evaluations" value={tenders.length} icon={<FileCheck size={24} />} />
           <StatsCard title="Total Tenders" value={stats.totalTenders || 0} icon={<ClipboardList size={24} />} />
           <StatsCard title="Total Awards" value={stats.totalContracts || 0} icon={<Award size={24} />} />
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold mb-4">Bids Pending Evaluation</h2>
-          <DataTable
-            columns={columns}
-            data={bids as unknown as Record<string, unknown>[]}
-            actions={(item) => (
-              <Button size="sm" onClick={() => handleEvaluation(item)}>
-                Evaluate
-              </Button>
-            )}
-          />
+          <h2 className="text-lg font-semibold mb-4">Tenders Under Evaluation</h2>
+          {loading ? (
+            <div className="h-64 bg-muted rounded-lg animate-pulse" />
+          ) : (
+            <DataTable
+              columns={columns}
+              data={tenders as unknown as Record<string, unknown>[]}
+              actions={(item) => (
+                <Button size="sm" onClick={() => handleEvaluate(item)}>
+                  Evaluate
+                </Button>
+              )}
+            />
+          )}
         </div>
+
+        <Dialog open={!!selectedTender} onOpenChange={() => setSelectedTender(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Evaluate Tender: {selectedTender?.title}</DialogTitle>
+            </DialogHeader>
+            {selectedTender && (
+              <div className="space-y-4">
+                {submitError && (
+                  <div className="p-3 text-sm text-white bg-destructive rounded-md">{submitError}</div>
+                )}
+                <div>
+                  <Label htmlFor="document">Evaluation Document (PDF) *</Label>
+                  <Input
+                    id="document"
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => setEvaluationDocument(e.target.files?.[0] || null)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">Upload the committee evaluation report (PDF format)</p>
+                </div>
+                <div>
+                  <Label htmlFor="winner">Select Winner *</Label>
+                  <select
+                    id="winner"
+                    value={winnerBidId}
+                    onChange={(e) => setWinnerBidId(e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                    required
+                  >
+                    <option value="">Select winning bid</option>
+                    {bids.map((bid) => (
+                      <option key={bid.id} value={bid.id}>
+                        {bid.supplier_name} - TZS {Number(bid.bid_amount).toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="remarks">Remarks (Optional)</Label>
+                  <Input
+                    id="remarks"
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    placeholder="Additional notes about the evaluation"
+                  />
+                </div>
+                <Button
+                  onClick={handleSubmitEvaluation}
+                  disabled={submitting}
+                  className="w-full"
+                >
+                  {submitting ? 'Submitting...' : 'Submit Evaluation Results'}
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );

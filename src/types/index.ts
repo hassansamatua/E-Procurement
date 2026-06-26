@@ -7,6 +7,7 @@ export type UserRole =
   | 'ACCOUNTING_OFFICER'
   | 'FINANCE_OFFICER'
   | 'EVALUATION_OFFICER'
+  | 'EVALUATOR'
   | 'SUPPLIER';
 
 export type SupplierStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'BLACKLISTED';

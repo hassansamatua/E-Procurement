@@ -126,6 +126,7 @@ export default function TenderManagement() {
       PUBLISHED: 'success',
       CLOSED: 'warning',
       UNDER_EVALUATION: 'info',
+      EVALUATION_COMPLETE: 'warning',
       AWARDED: 'success',
       CANCELLED: 'destructive',
     };
@@ -324,6 +325,11 @@ export default function TenderManagement() {
                       Evaluate
                     </Button>
                   </>
+                )}
+                {item.status === 'EVALUATION_COMPLETE' && (
+                  <Button size="sm" onClick={() => handleTenderAction(item.id as string, 'PUBLISH_AWARD')}>
+                    Publish Award
+                  </Button>
                 )}
                 <Button size="sm" variant="ghost" onClick={() => setSelectedTender(item)}>
                   <Eye size={16} />

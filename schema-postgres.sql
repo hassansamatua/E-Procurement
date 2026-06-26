@@ -225,7 +225,7 @@ CREATE TABLE IF NOT EXISTS tenders (
   submission_deadline TIMESTAMP NOT NULL,
   opening_date TIMESTAMP NOT NULL,
   closing_date TIMESTAMP NOT NULL,
-  status VARCHAR(20) DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'PUBLISHED', 'CLOSED', 'UNDER_EVALUATION', 'AWARDED', 'CANCELLED')),
+  status VARCHAR(20) DEFAULT 'DRAFT' CHECK (status IN ('DRAFT', 'PUBLISHED', 'CLOSED', 'UNDER_EVALUATION', 'EVALUATION_COMPLETE', 'AWARDED', 'CANCELLED')),
   evaluation_criteria TEXT,
   organization_id VARCHAR(36) NOT NULL,
   created_by VARCHAR(36) NOT NULL,
@@ -272,6 +272,7 @@ CREATE TABLE IF NOT EXISTS bids (
   status VARCHAR(20) DEFAULT 'SUBMITTED' CHECK (status IN ('SUBMITTED', 'UNDER_REVIEW', 'EVALUATED', 'AWARDED', 'REJECTED', 'DISQUALIFIED')),
   submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   evaluated_at TIMESTAMP,
+  contract_signing_date TIMESTAMP,
   notes TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -292,6 +293,24 @@ CREATE TABLE IF NOT EXISTS bid_documents (
   mime_type VARCHAR(100),
   uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (bid_id) REFERENCES bids(id) ON DELETE CASCADE
+);
+
+-- =============================================
+-- EVALUATION RESULTS TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS evaluation_results (
+  id VARCHAR(36) PRIMARY KEY,
+  tender_id VARCHAR(36) NOT NULL,
+  committee_id VARCHAR(36),
+  evaluation_document_url VARCHAR(500),
+  winner_bid_id VARCHAR(36),
+  remarks TEXT,
+  evaluated_by VARCHAR(36) NOT NULL,
+  evaluated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (tender_id) REFERENCES tenders(id) ON DELETE CASCADE,
+  FOREIGN KEY (committee_id) REFERENCES evaluation_committees(id),
+  FOREIGN KEY (winner_bid_id) REFERENCES bids(id),
+  FOREIGN KEY (evaluated_by) REFERENCES users(id)
 );
 
 -- =============================================

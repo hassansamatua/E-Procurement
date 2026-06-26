@@ -225,6 +225,28 @@ async function handlePatch(req: NextRequest) {
 
       case 'EVALUATE':
         await execute('UPDATE tenders SET status = ? WHERE id = ?', ['UNDER_EVALUATION', tenderId]);
+
+        // Notify Evaluation Officer
+        const evalOfficer = await queryOne<{ id: string }>(
+          `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id
+           WHERE r.name = 'EVALUATOR' AND u.organization_id = ? AND u.is_active = TRUE LIMIT 1`,
+          [tender.organization_id]
+        );
+        if (evalOfficer) {
+          await createNotification({
+            userId: evalOfficer.id,
+            title: 'Tender Ready for Evaluation',
+            message: `Tender "${tender.title}" (${tender.tender_number}) is ready for evaluation.`,
+            type: 'INFO',
+            category: 'tender_evaluation',
+            referenceId: tenderId,
+            referenceType: 'tender',
+          });
+        }
+        break;
+
+      case 'PUBLISH_AWARD':
+        await execute('UPDATE tenders SET status = ? WHERE id = ?', ['AWARDED', tenderId]);
         break;
 
       default:
