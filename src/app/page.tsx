@@ -12,6 +12,8 @@ const roleRoutes: Record<UserRole, string> = {
   HOD: '/hod',
   PROCUREMENT_OFFICER: '/procurement',
   ACCOUNTING_OFFICER: '/accounting',
+  FINANCE_OFFICER: '/finance',
+  EVALUATION_OFFICER: '/evaluation',
   SUPPLIER: '/supplier',
 };
 

@@ -1,10 +1,12 @@
-export type UserRole = 
-  | 'SUPER_ADMIN' 
-  | 'ADMIN' 
-  | 'STAFF' 
-  | 'HOD' 
-  | 'PROCUREMENT_OFFICER' 
-  | 'ACCOUNTING_OFFICER' 
+export type UserRole =
+  | 'SUPER_ADMIN'
+  | 'ADMIN'
+  | 'STAFF'
+  | 'HOD'
+  | 'PROCUREMENT_OFFICER'
+  | 'ACCOUNTING_OFFICER'
+  | 'FINANCE_OFFICER'
+  | 'EVALUATION_OFFICER'
   | 'SUPPLIER';
 
 export type SupplierStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'BLACKLISTED';
