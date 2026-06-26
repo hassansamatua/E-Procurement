@@ -104,7 +104,7 @@ async function handlePost(req: NextRequest) {
        status, evaluation_criteria, organization_id, created_by)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'DRAFT', ?, ?, ?)`,
       [
-        tenderId, tenderNumber, data.title, data.description, null, // Set category_id to null for now
+        tenderId, tenderNumber, data.title, data.description, data.category_id || null,
         data.procurement_request_id || null, data.procurement_method, data.budget_estimate || null,
         data.currency, data.submission_deadline, data.opening_date, data.closing_date,
         data.evaluation_criteria ? JSON.stringify(data.evaluation_criteria) : null,
