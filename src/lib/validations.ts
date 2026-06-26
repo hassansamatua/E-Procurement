@@ -112,6 +112,8 @@ export const tenderSchema = z.object({
   opening_date: z.string().min(1, 'Opening date is required'),
   closing_date: z.string().min(1, 'Closing date is required'),
   evaluation_criteria: z.record(z.string(), z.number()).optional(),
+  document_url: z.string().optional(),
+  selected_suppliers: z.array(z.string()).optional(),
 });
 
 // Bid Validations
@@ -120,6 +122,7 @@ export const bidSchema = z.object({
   bid_amount: z.number().positive('Bid amount must be positive'),
   currency: z.string().default('TZS'),
   notes: z.string().optional(),
+  document_url: z.string().optional(),
 });
 
 // Evaluation Validations

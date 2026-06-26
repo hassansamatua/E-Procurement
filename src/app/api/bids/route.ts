@@ -139,6 +139,23 @@ async function handlePost(req: NextRequest) {
       [bidId, bidNumber, data.tender_id, supplier.id, data.bid_amount, data.currency, data.notes || null]
     );
 
+    // Save bid document if provided
+    if (data.document_url) {
+      await execute(
+        `INSERT INTO bid_documents (id, bid_id, document_type, document_name, file_path, file_size, mime_type)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          generateId(),
+          bidId,
+          'TECHNICAL_PROPOSAL',
+          'Filled Tender Document',
+          data.document_url,
+          0, // File size not available from Cloudinary
+          'application/pdf',
+        ]
+      );
+    }
+
     await createAuditLog({
       userId: user.userId,
       action: 'BID_SUBMITTED',

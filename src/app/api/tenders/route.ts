@@ -51,7 +51,9 @@ async function handleGet(req: NextRequest) {
 
     const tenders = await query(
       `SELECT t.*, tc.name as category_name, o.name as organization_name,
-              CONCAT(u.first_name, ' ', u.last_name) as created_by_name
+              CONCAT(u.first_name, ' ', u.last_name) as created_by_name,
+              (SELECT json_agg(json_build_object('id', td.id, 'document_name', td.document_name, 'file_path', td.file_path))
+               FROM tender_documents td WHERE td.tender_id = t.id AND td.is_public = true) as documents
        FROM tenders t
        LEFT JOIN tender_categories tc ON t.category_id = tc.id
        JOIN organizations o ON t.organization_id = o.id
@@ -109,6 +111,23 @@ async function handlePost(req: NextRequest) {
         user.organizationId, user.userId,
       ]
     );
+
+    // Save tender document if provided
+    if (data.document_url) {
+      await execute(
+        `INSERT INTO tender_documents (id, tender_id, document_name, file_path, file_size, mime_type, is_public)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        [
+          generateId(),
+          tenderId,
+          'Tender Document',
+          data.document_url,
+          0, // File size not available from Cloudinary
+          'application/pdf',
+          true,
+        ]
+      );
+    }
 
     // Update procurement request status if linked
     if (data.procurement_request_id) {

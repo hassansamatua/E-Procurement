@@ -73,6 +73,7 @@ export default function SupplierTendersPage() {
         bid_amount: Number(bidAmount),
         currency: bidCurrency,
         notes: bidNotes,
+        document_url: documentUrl,
       });
       setBidSuccess('Bid submitted successfully');
       setBidAmount('');
@@ -186,6 +187,25 @@ export default function SupplierTendersPage() {
                   <p className="text-sm text-muted-foreground">Description</p>
                   <p className="font-medium">{selectedTender.description}</p>
                 </div>
+                {selectedTender.documents && selectedTender.documents.length > 0 && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Tender Document</p>
+                    <div className="space-y-2">
+                      {selectedTender.documents.map((doc: any) => (
+                        <a
+                          key={doc.id}
+                          href={doc.file_path}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                        >
+                          <Eye size={16} />
+                          {doc.document_name}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
