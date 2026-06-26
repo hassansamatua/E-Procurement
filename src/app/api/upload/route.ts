@@ -6,6 +6,13 @@ cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+});
+
+console.log('Cloudinary config:', {
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY ? 'set' : 'not set',
+  api_secret: process.env.CLOUDINARY_API_SECRET ? 'set' : 'not set',
 });
 
 // LOCAL: Local file upload - Commented for production deployment
@@ -81,18 +88,23 @@ async function handlePost(req: NextRequest) {
     const buffer = Buffer.from(bytes);
     const timestamp = Date.now();
     const randomString = Math.random().toString(36).substring(2, 15);
-    const publicId = `${category}/${timestamp}-${randomString}`;
+    const publicId = `e-procurement/${category}/${timestamp}-${randomString}`;
 
     const uploadResult = await new Promise((resolve: (value: any) => void, reject: (reason?: any) => void) => {
       cloudinary.uploader.upload_stream(
         {
           public_id: publicId,
           resource_type: 'auto',
-          folder: 'e-procurement',
+          type: 'upload',
         },
         (error: any, result: any) => {
-          if (error) reject(error);
-          else resolve(result);
+          if (error) {
+            console.error('Cloudinary upload error:', error);
+            reject(error);
+          } else {
+            console.log('Cloudinary upload success:', result);
+            resolve(result);
+          }
         }
       ).end(buffer);
     });
