@@ -509,6 +509,31 @@ CREATE TABLE IF NOT EXISTS email_templates (
 );
 
 -- =============================================
+-- PAYMENTS TABLE
+-- =============================================
+CREATE TABLE IF NOT EXISTS payments (
+  id VARCHAR(36) PRIMARY KEY,
+  contract_id VARCHAR(36) NOT NULL,
+  bid_id VARCHAR(36) NOT NULL,
+  supplier_id VARCHAR(36) NOT NULL,
+  amount DECIMAL(20,2) NOT NULL,
+  currency VARCHAR(10) DEFAULT 'TZS',
+  payment_method VARCHAR(50) DEFAULT 'BANK_TRANSFER',
+  payment_reference VARCHAR(100),
+  status VARCHAR(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'PROCESSING', 'COMPLETED', 'FAILED', 'CANCELLED')),
+  payment_date TIMESTAMP,
+  processed_by VARCHAR(36),
+  notes TEXT,
+  is_test_mode BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (contract_id) REFERENCES contracts(id),
+  FOREIGN KEY (bid_id) REFERENCES bids(id),
+  FOREIGN KEY (supplier_id) REFERENCES suppliers(id),
+  FOREIGN KEY (processed_by) REFERENCES users(id)
+);
+
+-- =============================================
 -- INDEXES
 -- =============================================
 CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
@@ -527,3 +552,6 @@ CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(is_read);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_user ON audit_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_payments_contract ON payments(contract_id);
+CREATE INDEX IF NOT EXISTS idx_payments_supplier ON payments(supplier_id);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
