@@ -51,15 +51,15 @@ async function handlePost(req: NextRequest) {
     const body = await req.json();
     const { tender_id, evaluation_document_url, winner_bid_id, remarks } = body;
 
-    // Verify user is EVALUATOR
+    // Verify user is EVALUATION_OFFICER
     const userRole = await queryOne<{ name: string }>(
       `SELECT r.name FROM users u JOIN roles r ON u.role_id = r.id WHERE u.id = ?`,
       [user.userId]
     );
 
-    if (!userRole || userRole.name !== 'EVALUATOR') {
+    if (!userRole || userRole.name !== 'EVALUATION_OFFICER') {
       return NextResponse.json<ApiResponse>(
-        { success: false, message: 'Only evaluators can submit evaluation results' },
+        { success: false, message: 'Only evaluation officers can submit evaluation results' },
         { status: 403 }
       );
     }
@@ -150,4 +150,4 @@ async function handlePost(req: NextRequest) {
 }
 
 export const GET = withAuth(handleGet);
-export const POST = withAuth(handlePost, ['EVALUATOR']);
+export const POST = withAuth(handlePost, ['EVALUATION_OFFICER']);

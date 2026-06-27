@@ -13,7 +13,8 @@ INSERT INTO roles (id, name, description) VALUES
 ('role-004', 'HOD', 'Head of Department'),
 ('role-005', 'PROCUREMENT_OFFICER', 'Procurement officer'),
 ('role-006', 'ACCOUNTING_OFFICER', 'Accounting/Finance officer'),
-('role-007', 'SUPPLIER', 'External supplier');
+('role-007', 'SUPPLIER', 'External supplier'),
+('role-008', 'EVALUATION_OFFICER', 'Bid evaluation committee member');
 
 -- =============================================
 -- PERMISSIONS
@@ -80,7 +81,8 @@ INSERT INTO users (id, email, password, first_name, last_name, phone, role_id, o
 ('user-005', 'procurement@moh.go.tz', '$2b$10$dkIeJZPtiQuViho8TtY6j.cxKC/KXAwbdhzZzsz/VxZxKYy7.ortm', 'Sarah', 'Officer', '+255-700-000005', 'role-005', 'org-001', 'Procurement', TRUE, TRUE),
 ('user-006', 'finance@moh.go.tz', '$2b$10$dkIeJZPtiQuViho8TtY6j.cxKC/KXAwbdhzZzsz/VxZxKYy7.ortm', 'David', 'Accountant', '+255-700-000006', 'role-006', 'org-001', 'Finance', TRUE, TRUE),
 ('user-007', 'supplier1@company.com', '$2b$10$dkIeJZPtiQuViho8TtY6j.cxKC/KXAwbdhzZzsz/VxZxKYy7.ortm', 'James', 'Mwangi', '+255-700-000007', 'role-007', NULL, NULL, TRUE, TRUE),
-('user-008', 'supplier2@company.com', '$2b$10$dkIeJZPtiQuViho8TtY6j.cxKC/KXAwbdhzZzsz/VxZxKYy7.ortm', 'Grace', 'Ochieng', '+255-700-000008', 'role-007', NULL, NULL, TRUE, TRUE);
+('user-008', 'supplier2@company.com', '$2b$10$dkIeJZPtiQuViho8TtY6j.cxKC/KXAwbdhzZzsz/VxZxKYy7.ortm', 'Grace', 'Ochieng', '+255-700-000008', 'role-007', NULL, NULL, TRUE, TRUE),
+('user-009', 'evaluation@moh.go.tz', '$2b$10$NUxxn47Sh/iO7KOjBmkMb.aUqYcsk0OYGv2qDUPywZFeLU8PcB42W', 'Peter', 'Evaluator', '+255-700-000009', 'role-008', 'org-001', 'Evaluation Committee', TRUE, TRUE);
 
 -- =============================================
 -- SUPPLIERS

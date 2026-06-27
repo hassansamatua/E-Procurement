@@ -229,7 +229,7 @@ async function handlePatch(req: NextRequest) {
         // Notify Evaluation Officer
         const evalOfficer = await queryOne<{ id: string }>(
           `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id
-           WHERE r.name = 'EVALUATOR' AND u.organization_id = ? AND u.is_active = TRUE LIMIT 1`,
+           WHERE r.name = 'EVALUATION_OFFICER' AND u.organization_id = ? AND u.is_active = TRUE LIMIT 1`,
           [tender.organization_id]
         );
         if (evalOfficer) {
