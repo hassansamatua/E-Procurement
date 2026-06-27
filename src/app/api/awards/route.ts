@@ -92,62 +92,6 @@ async function handlePost(req: NextRequest) {
       [evaluationResult.tender_id, winnerBid.id]
     );
 
-    // Get all rejected suppliers for notifications
-    const rejectedBids = await query(
-      `SELECT supplier_id, rank FROM bids WHERE tender_id = ? AND status = 'REJECTED' ORDER BY total_score DESC`,
-      [evaluationResult.tender_id]
-    ) as any[];
-
-    // Notify winner
-    if (supplier.user_id) {
-      await createNotification({
-        userId: supplier.user_id,
-        title: 'Congratulations! Your Bid Has Been Awarded',
-        message: `Your bid for tender "${tender.title}" (${tender.tender_number}) has been awarded. Contract signing date: ${new Date(contract_signing_date).toLocaleDateString()}. Please contact the procurement office.`,
-        type: 'SUCCESS',
-        category: 'bid_awarded',
-        referenceId: winnerBid.id,
-        referenceType: 'bid',
-        sendEmail: true,
-        emailTo: supplier.email,
-        emailTemplate: 'bid_awarded',
-        emailVariables: { 
-          tender_title: tender.title, 
-          tender_number: tender.tender_number,
-          contract_signing_date: new Date(contract_signing_date).toLocaleDateString(),
-          bid_amount: `${winnerBid.currency} ${winnerBid.bid_amount.toLocaleString()}`
-        },
-      });
-    }
-
-    // Notify rejected suppliers with their position
-    for (const rejectedBid of rejectedBids) {
-      const rejectedSupplier = await queryOne<{ user_id: string; email: string; company_name: string }>(
-        'SELECT user_id, email, company_name FROM suppliers WHERE id = ?',
-        [rejectedBid.supplier_id]
-      );
-
-      if (rejectedSupplier && rejectedSupplier.user_id) {
-        await createNotification({
-          userId: rejectedSupplier.user_id,
-          title: 'Bid Result - Thank You for Your Participation',
-          message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was not successful. Your position: ${rejectedBid.rank || 'N/A'}. Thank you for your participation.`,
-        type: 'INFO',
-        category: 'bid_rejected',
-        referenceId: evaluationResult.tender_id,
-        referenceType: 'tender',
-        sendEmail: true,
-        emailTo: rejectedSupplier.email,
-        emailTemplate: 'bid_rejected',
-        emailVariables: { 
-          tender_title: tender.title,
-          tender_number: tender.tender_number,
-          position: rejectedBid.rank || 'N/A'
-        },
-        });
-      }
-    }
-
     // Notify Procurement Officer to publish the award
     const procurementOfficer = await queryOne<{ id: string }>(
       `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id
@@ -159,7 +103,7 @@ async function handlePost(req: NextRequest) {
       await createNotification({
         userId: procurementOfficer.id,
         title: 'Award Approved - Ready to Publish',
-        message: `The award for tender "${tender.title}" (${tender.tender_number}) has been approved. Please publish the award announcement.`,
+        message: `The award for tender "${tender.title}" (${tender.tender_number}) has been approved. Please publish the award announcement to notify suppliers.`,
         type: 'INFO',
         category: 'award_approved',
         referenceId: evaluationResult.tender_id,

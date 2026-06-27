@@ -247,6 +247,94 @@ async function handlePatch(req: NextRequest) {
 
       case 'PUBLISH_AWARD':
         await execute('UPDATE tenders SET status = ? WHERE id = ?', ['AWARDED', tenderId]);
+
+        // Get evaluation result for this tender
+        const evaluationResult = await queryOne<{
+          id: string;
+          winner_bid_id: string;
+        }>(
+          'SELECT * FROM evaluation_results WHERE tender_id = ?',
+          [tenderId]
+        );
+
+        if (evaluationResult) {
+          // Get winner bid and supplier
+          const winnerBid = await queryOne<{ id: string; supplier_id: string; bid_amount: number; currency: string }>(
+            'SELECT * FROM bids WHERE id = ?',
+            [evaluationResult.winner_bid_id]
+          );
+
+          if (winnerBid) {
+            const supplier = await queryOne<{ user_id: string; company_name: string; email: string }>(
+              'SELECT * FROM suppliers WHERE id = ?',
+              [winnerBid.supplier_id]
+            );
+
+            if (supplier) {
+              // Notify winner with contract signing date
+              const awardedBid = await queryOne<{ contract_signing_date: string }>(
+                'SELECT contract_signing_date FROM bids WHERE id = ?',
+                [winnerBid.id]
+              );
+
+              if (supplier.user_id) {
+                await createNotification({
+                  userId: supplier.user_id,
+                  title: 'Congratulations! Your Bid Has Been Awarded',
+                  message: `Your bid for tender "${tender.title}" (${tender.tender_number}) has been awarded. Contract signing date: ${awardedBid?.contract_signing_date ? new Date(awardedBid.contract_signing_date).toLocaleDateString() : 'To be scheduled'}. Please contact the procurement office.`,
+                  type: 'SUCCESS',
+                  category: 'bid_awarded',
+                  referenceId: winnerBid.id,
+                  referenceType: 'bid',
+                  sendEmail: true,
+                  emailTo: supplier.email,
+                  emailTemplate: 'bid_awarded',
+                  emailVariables: {
+                    tender_title: tender.title,
+                    tender_number: tender.tender_number,
+                    contract_signing_date: awardedBid?.contract_signing_date ? new Date(awardedBid.contract_signing_date).toLocaleDateString() : 'To be scheduled',
+                    bid_amount: `${winnerBid.currency} ${winnerBid.bid_amount.toLocaleString()}`
+                  },
+                });
+              }
+            }
+
+            // Get all rejected suppliers with their positions
+            const rejectedBids = await query(
+              `SELECT supplier_id FROM bids WHERE tender_id = ? AND status = 'REJECTED' AND id != ?`,
+              [tenderId, winnerBid.id]
+            ) as any[];
+
+            // Notify rejected suppliers with their position
+            for (let i = 0; i < rejectedBids.length; i++) {
+              const rejectedBid = rejectedBids[i];
+              const rejectedSupplier = await queryOne<{ user_id: string; email: string; company_name: string }>(
+                'SELECT user_id, email, company_name FROM suppliers WHERE id = ?',
+                [rejectedBid.supplier_id]
+              );
+
+              if (rejectedSupplier && rejectedSupplier.user_id) {
+                await createNotification({
+                  userId: rejectedSupplier.user_id,
+                  title: 'Bid Result - Thank You for Your Participation',
+                  message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was not successful. Your position: ${i + 2}. Thank you for your participation.`,
+                  type: 'INFO',
+                  category: 'bid_rejected',
+                  referenceId: tenderId,
+                  referenceType: 'tender',
+                  sendEmail: true,
+                  emailTo: rejectedSupplier.email,
+                  emailTemplate: 'bid_rejected',
+                  emailVariables: {
+                    tender_title: tender.title,
+                    tender_number: tender.tender_number,
+                    position: String(i + 2)
+                  },
+                });
+              }
+            }
+          }
+        }
         break;
 
       default:
