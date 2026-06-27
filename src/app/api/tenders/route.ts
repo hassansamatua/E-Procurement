@@ -270,6 +270,8 @@ async function handlePatch(req: NextRequest) {
       case 'PUBLISH_AWARD':
         await execute('UPDATE tenders SET status = ? WHERE id = ?', ['AWARDED', tenderId]);
 
+        console.log('PUBLISH_AWARD: Tender updated to AWARDED');
+
         // Get evaluation result for this tender
         const evaluationResult = await queryOne<{
           id: string;
@@ -280,6 +282,8 @@ async function handlePatch(req: NextRequest) {
           'SELECT * FROM evaluation_results WHERE tender_id = ?',
           [tenderId]
         );
+
+        console.log('PUBLISH_AWARD: Evaluation result:', evaluationResult);
 
         if (evaluationResult) {
           // Get winner bid and supplier
@@ -311,6 +315,8 @@ async function handlePatch(req: NextRequest) {
                   referenceId: winnerBid.id,
                   referenceType: 'bid',
                 });
+              } else {
+                console.error('Supplier has no user_id:', supplier);
               }
             }
 
