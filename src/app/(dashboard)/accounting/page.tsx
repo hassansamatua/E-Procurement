@@ -31,7 +31,7 @@ export default function AccountingDashboard() {
       const [statsRes, reqRes, tendersRes] = await Promise.all([
         axios.get('/api/dashboard'),
         axios.get('/api/procurement-requests?status=PENDING_FINANCE&limit=10'),
-        axios.get('/api/tenders?status=EVALUATION_COMPLETE&limit=20'),
+        axios.get('/api/tenders?status=PENDING_AWARD_APPROVAL&limit=20'),
       ]);
       setStats(statsRes.data.data);
       setRequests(reqRes.data.data || []);

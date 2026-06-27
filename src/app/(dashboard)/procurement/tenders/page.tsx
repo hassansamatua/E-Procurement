@@ -127,6 +127,8 @@ export default function TenderManagement() {
       CLOSED: 'warning',
       UNDER_EVALUATION: 'info',
       EVALUATION_COMPLETE: 'warning',
+      PENDING_AWARD_APPROVAL: 'info',
+      AWARD_APPROVED: 'warning',
       AWARDED: 'success',
       CANCELLED: 'destructive',
     };
@@ -327,6 +329,11 @@ export default function TenderManagement() {
                   </Button>
                 )}
                 {item.status === 'EVALUATION_COMPLETE' && (
+                  <Button size="sm" variant="outline" onClick={() => handleTenderAction(item.id as string, 'FORWARD_TO_ACCOUNTING')}>
+                    Forward to Accounting
+                  </Button>
+                )}
+                {item.status === 'AWARD_APPROVED' && (
                   <Button size="sm" onClick={() => handleTenderAction(item.id as string, 'PUBLISH_AWARD')}>
                     Publish Award
                   </Button>

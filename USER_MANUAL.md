@@ -14,6 +14,7 @@
    - [Staff](#staff)
    - [Head of Department (HOD)](#head-of-department-hod)
    - [Procurement Officer](#procurement-officer)
+   - [Evaluation Officer](#evaluation-officer)
    - [Accounting Officer](#accounting-officer)
    - [Supplier](#supplier)
    - [Admin](#admin)
@@ -44,8 +45,9 @@ The E-Procurement System is a comprehensive platform that manages the entire pro
 |------|----------------------|------------------|
 | **Staff** | Initiate procurement requests | Create requests, view own requests, notifications |
 | **HOD** | Approve departmental requests | Review/approve/reject requests, view department requests |
-| **Procurement Officer** | Manage tenders, bids, evaluations | Create tenders, evaluate bids, award contracts, rate suppliers |
-| **Accounting Officer** | Financial approval | Review budget, approve/reject requests financially |
+| **Procurement Officer** | Manage tenders, bids, evaluations | Create tenders, forward to evaluation, publish awards, rate suppliers |
+| **Evaluation Officer** | Evaluate bids and recommend winners | Evaluate tenders, select winner/runner-ups, upload evaluation documents |
+| **Accounting Officer** | Financial approval & award approval | Review budget, approve requests, approve awards with contract signing date |
 | **Supplier** | Submit bids, manage contracts | View tenders, submit bids, view contracts, manage profile |
 | **Admin** | Manage suppliers, categories, tenders | CRUD suppliers, categories, tenders, view reports |
 | **Super Admin** | System-wide management | Manage organizations, users, audit logs, system settings |
@@ -90,13 +92,19 @@ Bid status: SUBMITTED
     ↓
 Procurement Officer closes tender (after deadline)
     ↓
-Tender status: CLOSED → Evaluation Committee formed
+Tender status: CLOSED
+    ↓
+Procurement Officer forwards to Evaluation
+    ↓
+Tender status: UNDER_EVALUATION
 ```
 
 **Tender Statuses:**
 - `DRAFT` — Being prepared
 - `PUBLISHED` — Visible to suppliers
-- `CLOSED` — Bidding ended, ready for evaluation
+- `CLOSED` — Bidding ended
+- `UNDER_EVALUATION` — Being evaluated by Evaluation Officer
+- `EVALUATION_COMPLETE` — Evaluation completed, awaiting award approval
 - `AWARDED` — Contract awarded
 - `CANCELLED` — Tender cancelled
 
@@ -105,17 +113,36 @@ Tender status: CLOSED → Evaluation Committee formed
 ### Evaluation & Award Workflow
 
 ```
-Evaluation Committee evaluates bids (Technical, Financial, Experience, Compliance)
+Tender status: UNDER_EVALUATION
     ↓
-Each bid gets a total score
+Evaluation Officer evaluates bids
     ↓
-Procurement Officer selects winning bid
+Upload evaluation document (PDF with all supplier positions)
     ↓
-Award action triggers:
-  - Winning bid status: AWARDED
-  - Other bids status: REJECTED
-  - Notifications sent to all suppliers
-  - Contract creation initiated
+Select:
+  - Winner (1st Position)
+  - 2nd Runner-up (Optional)
+  - 3rd Runner-up (Optional)
+    ↓
+Submit evaluation results
+    ↓
+Tender status: EVALUATION_COMPLETE
+    ↓
+Accounting Officer reviews and approves award
+    ↓
+Set contract signing date
+    ↓
+Notify Procurement Officer to publish
+    ↓
+Procurement Officer publishes award
+    ↓
+Tender status: AWARDED
+    ↓
+System notifications sent to all suppliers:
+  - Winner: "Congratulations - 1st Position" with contract signing date
+  - 2nd Runner-up: "2nd Position"
+  - 3rd Runner-up: "3rd Position"
+  - Others: "Your position: X" (4th, 5th, etc.)
 ```
 
 **Bid Statuses:**
@@ -264,33 +291,29 @@ Supplier rating stored for future reference
 - After submission deadline
 - Close tender (status: CLOSED) → ready for evaluation
 
+**Forward to Evaluation:**
+- For PUBLISHED or CLOSED tenders
+- Click **Forward to Evaluation**
+- Tender status changes to UNDER_EVALUATION
+- Evaluation Officer receives notification
+
+**Publish Award:**
+- For tenders with EVALUATION_COMPLETE status
+- Click **Publish Award**
+- Tender status changes to AWARDED
+- All suppliers receive notifications with their positions
+
 **3. Manage Bids:**
 - Navigate to **Bids**
 - View all bids with status badges
-- **View Details** — see bid documents, supplier info, evaluation scores
+- **View Details** — see bid documents, supplier info
 
-**4. Evaluation:**
-- Navigate to **Evaluations**
-- **Bids Awaiting Evaluation** — tenders in CLOSED status
-- Click **Evaluate** on a tender
-- For each bid, score:
-  - Technical (0–100)
-  - Financial (0–100)
-  - Experience (0–100)
-  - Compliance (0–100)
-  - Comments
-- Submit → Bid status: `EVALUATED`
+**4. Evaluation Committees:**
+- Navigate to **Evaluation Committees**
+- Create committee for tender evaluation
+- Assign members
 
-**5. Award Bid:**
-- In **Bids**, click **View** on an evaluated bid
-- Click **Award** (only available for EVALUATED bids)
-- System:
-  - Sets this bid to AWARDED
-  - Rejects all other bids for the tender
-  - Notifies all suppliers
-  - Initiates contract creation
-
-**6. Manage Contracts:**
+**5. Manage Contracts:**
 - Navigate to **Contracts**
 - **Create Contract** (after award):
   - Select awarded bid
@@ -298,7 +321,7 @@ Supplier rating stored for future reference
   - Submit → status: ACTIVE
 - Update status to COMPLETED when delivered
 
-**7. Rate Suppliers:**
+**6. Rate Suppliers:**
 - Navigate to **Ratings**
 - Click **Rate Supplier**
 - Select contract (ACTIVE or COMPLETED)
@@ -310,14 +333,37 @@ Supplier rating stored for future reference
 - Add comments
 - Submit → Rating stored, overall score calculated
 
-**8. Evaluation Committees:**
-- Navigate to **Evaluation Committees**
-- Create committee for tender evaluation
-- Assign members
-
-**9. Reports:**
+**7. Reports:**
 - Navigate to **Reports**
 - View procurement analytics
+
+---
+
+### Evaluation Officer
+
+**Dashboard:** View pending evaluations, total tenders, and total awards.
+
+**Evaluate Tenders:**
+1. Navigate to **Tenders Under Evaluation**
+2. View tenders with status UNDER_EVALUATION
+3. Click **Evaluate** on a tender
+4. In the evaluation dialog:
+   - Upload evaluation document (PDF) - This document contains all supplier positions
+   - Select Winner (1st Position) - Required
+   - Select 2nd Runner-up (Optional)
+   - Select 3rd Runner-up (Optional)
+   - Add remarks (Optional)
+5. Click **Submit Evaluation Results**
+6. Tender status changes to EVALUATION_COMPLETE
+7. Accounting Officer receives notification to review and approve award
+
+**View Evaluation History:**
+- Navigate to evaluation results
+- View past evaluations with winner information
+
+**Notifications:**
+- Alerts for tenders ready for evaluation
+- Updates on award approval status
 
 ---
 
@@ -334,12 +380,26 @@ Supplier rating stored for future reference
    - **Approve** → Request status: APPROVED (ready for tender)
    - **Reject** → Request status: FINANCE_REJECTED
 
+**Approve Awards:**
+1. Navigate to **Awards** or **Approvals**
+2. View tenders with status EVALUATION_COMPLETE
+3. Click **Review** on a tender
+4. Review evaluation results:
+   - Winning bid details
+   - Evaluation document
+   - 2nd and 3rd runner-ups (if selected)
+5. Set contract signing date
+6. Click **Approve Award**
+7. Procurement Officer receives notification to publish award
+8. Suppliers will be notified when Procurement Officer publishes
+
 **View All Requests:**
 - Navigate to **Requests**
 - Filter by status, priority, date
 
 **Notifications:**
 - Alerts for requests awaiting financial approval
+- Alerts for awards ready for approval
 - Updates on request status
 
 ---
@@ -511,6 +571,8 @@ For technical issues or questions:
 - `DRAFT` — Being prepared
 - `PUBLISHED` — Open for bidding
 - `CLOSED` — Bidding ended
+- `UNDER_EVALUATION` — Being evaluated by Evaluation Officer
+- `EVALUATION_COMPLETE` — Evaluation completed, awaiting award approval
 - `AWARDED` — Contract awarded
 - `CANCELLED` — Cancelled
 

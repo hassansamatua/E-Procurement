@@ -110,18 +110,18 @@ async function handlePost(req: NextRequest) {
       [tender_id]
     );
 
-    // Notify Accounting Officer
-    const accountingOfficer = await queryOne<{ id: string }>(
+    // Notify Procurement Officer to forward to Accounting
+    const procurementOfficer = await queryOne<{ id: string }>(
       `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id
-       WHERE r.name = 'ACCOUNTING_OFFICER' AND u.organization_id = ? AND u.is_active = TRUE LIMIT 1`,
+       WHERE r.name = 'PROCUREMENT_OFFICER' AND u.organization_id = ? AND u.is_active = TRUE LIMIT 1`,
       [tender.organization_id]
     );
 
-    if (accountingOfficer) {
+    if (procurementOfficer) {
       await createNotification({
-        userId: accountingOfficer.id,
-        title: 'Evaluation Complete - Review Required',
-        message: `Evaluation for tender "${tender.title}" (${tender.tender_number}) is complete. Please review and award the winner.`,
+        userId: procurementOfficer.id,
+        title: 'Evaluation Complete - Forward to Accounting',
+        message: `Evaluation for tender "${tender.title}" (${tender.tender_number}) is complete. Please forward to Accounting Officer for award approval.`,
         type: 'INFO',
         category: 'evaluation_complete',
         referenceId: resultId,

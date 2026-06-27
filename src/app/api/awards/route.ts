@@ -92,6 +92,12 @@ async function handlePost(req: NextRequest) {
       [evaluationResult.tender_id, winnerBid.id]
     );
 
+    // Update tender status to AWARD_APPROVED
+    await execute(
+      'UPDATE tenders SET status = ? WHERE id = ?',
+      ['AWARD_APPROVED', evaluationResult.tender_id]
+    );
+
     // Notify Procurement Officer to publish the award
     const procurementOfficer = await queryOne<{ id: string }>(
       `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id

@@ -245,6 +245,28 @@ async function handlePatch(req: NextRequest) {
         }
         break;
 
+      case 'FORWARD_TO_ACCOUNTING':
+        await execute('UPDATE tenders SET status = ? WHERE id = ?', ['PENDING_AWARD_APPROVAL', tenderId]);
+
+        // Notify Accounting Officer
+        const accountingOfficer = await queryOne<{ id: string }>(
+          `SELECT u.id FROM users u JOIN roles r ON u.role_id = r.id
+           WHERE r.name = 'ACCOUNTING_OFFICER' AND u.organization_id = ? AND u.is_active = TRUE LIMIT 1`,
+          [tender.organization_id]
+        );
+        if (accountingOfficer) {
+          await createNotification({
+            userId: accountingOfficer.id,
+            title: 'Award Approval Required',
+            message: `Tender "${tender.title}" (${tender.tender_number}) is ready for award approval. Please review and approve.`,
+            type: 'INFO',
+            category: 'award_approval',
+            referenceId: tenderId,
+            referenceType: 'tender',
+          });
+        }
+        break;
+
       case 'PUBLISH_AWARD':
         await execute('UPDATE tenders SET status = ? WHERE id = ?', ['AWARDED', tenderId]);
 
