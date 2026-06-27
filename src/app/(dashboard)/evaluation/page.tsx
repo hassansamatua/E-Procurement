@@ -21,6 +21,8 @@ export default function EvaluationDashboard() {
   const [bids, setBids] = useState<any[]>([]);
   const [evaluationDocument, setEvaluationDocument] = useState<File | null>(null);
   const [winnerBidId, setWinnerBidId] = useState('');
+  const [secondRunnerUpId, setSecondRunnerUpId] = useState('');
+  const [thirdRunnerUpId, setThirdRunnerUpId] = useState('');
   const [remarks, setRemarks] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -75,12 +77,16 @@ export default function EvaluationDashboard() {
         tender_id: selectedTender.id,
         evaluation_document_url: documentUrl,
         winner_bid_id: winnerBidId,
+        second_runner_up_bid_id: secondRunnerUpId || null,
+        third_runner_up_bid_id: thirdRunnerUpId || null,
         remarks,
       });
 
       setSelectedTender(null);
       setEvaluationDocument(null);
       setWinnerBidId('');
+      setSecondRunnerUpId('');
+      setThirdRunnerUpId('');
       setRemarks('');
       fetchData();
     } catch (error: any) {
@@ -150,7 +156,7 @@ export default function EvaluationDashboard() {
                   <p className="text-xs text-muted-foreground mt-1">Upload the committee evaluation report (PDF format)</p>
                 </div>
                 <div>
-                  <Label htmlFor="winner">Select Winner *</Label>
+                  <Label htmlFor="winner">Select Winner (1st Position) *</Label>
                   <select
                     id="winner"
                     value={winnerBidId}
@@ -160,6 +166,38 @@ export default function EvaluationDashboard() {
                   >
                     <option value="">Select winning bid</option>
                     {bids.map((bid) => (
+                      <option key={bid.id} value={bid.id}>
+                        {bid.supplier_name} - TZS {Number(bid.bid_amount).toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="second">Select 2nd Runner-up (Optional)</Label>
+                  <select
+                    id="second"
+                    value={secondRunnerUpId}
+                    onChange={(e) => setSecondRunnerUpId(e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="">Select 2nd position</option>
+                    {bids.filter((b) => b.id !== winnerBidId).map((bid) => (
+                      <option key={bid.id} value={bid.id}>
+                        {bid.supplier_name} - TZS {Number(bid.bid_amount).toLocaleString()}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="third">Select 3rd Runner-up (Optional)</Label>
+                  <select
+                    id="third"
+                    value={thirdRunnerUpId}
+                    onChange={(e) => setThirdRunnerUpId(e.target.value)}
+                    className="w-full p-2 border rounded-md"
+                  >
+                    <option value="">Select 3rd position</option>
+                    {bids.filter((b) => b.id !== winnerBidId && b.id !== secondRunnerUpId).map((bid) => (
                       <option key={bid.id} value={bid.id}>
                         {bid.supplier_name} - TZS {Number(bid.bid_amount).toLocaleString()}
                       </option>

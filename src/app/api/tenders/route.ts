@@ -252,6 +252,8 @@ async function handlePatch(req: NextRequest) {
         const evaluationResult = await queryOne<{
           id: string;
           winner_bid_id: string;
+          second_runner_up_bid_id: string;
+          third_runner_up_bid_id: string;
         }>(
           'SELECT * FROM evaluation_results WHERE tender_id = ?',
           [tenderId]
@@ -281,33 +283,80 @@ async function handlePatch(req: NextRequest) {
                 await createNotification({
                   userId: supplier.user_id,
                   title: 'Congratulations! Your Bid Has Been Awarded',
-                  message: `Your bid for tender "${tender.title}" (${tender.tender_number}) has been awarded. Contract signing date: ${awardedBid?.contract_signing_date ? new Date(awardedBid.contract_signing_date).toLocaleDateString() : 'To be scheduled'}. Please contact the procurement office.`,
+                  message: `Your bid for tender "${tender.title}" (${tender.tender_number}) has been awarded (1st Position). Contract signing date: ${awardedBid?.contract_signing_date ? new Date(awardedBid.contract_signing_date).toLocaleDateString() : 'To be scheduled'}. Please contact the procurement office.`,
                   type: 'SUCCESS',
                   category: 'bid_awarded',
                   referenceId: winnerBid.id,
                   referenceType: 'bid',
-                  sendEmail: true,
-                  emailTo: supplier.email,
-                  emailTemplate: 'bid_awarded',
-                  emailVariables: {
-                    tender_title: tender.title,
-                    tender_number: tender.tender_number,
-                    contract_signing_date: awardedBid?.contract_signing_date ? new Date(awardedBid.contract_signing_date).toLocaleDateString() : 'To be scheduled',
-                    bid_amount: `${winnerBid.currency} ${winnerBid.bid_amount.toLocaleString()}`
-                  },
                 });
               }
             }
 
-            // Get all rejected suppliers with their positions
-            const rejectedBids = await query(
-              `SELECT supplier_id FROM bids WHERE tender_id = ? AND status = 'REJECTED' AND id != ?`,
-              [tenderId, winnerBid.id]
+            // Notify 2nd runner-up
+            if (evaluationResult.second_runner_up_bid_id) {
+              const secondBid = await queryOne<{ supplier_id: string }>(
+                'SELECT supplier_id FROM bids WHERE id = ?',
+                [evaluationResult.second_runner_up_bid_id]
+              );
+              if (secondBid) {
+                const secondSupplier = await queryOne<{ user_id: string; email: string; company_name: string }>(
+                  'SELECT user_id, email, company_name FROM suppliers WHERE id = ?',
+                  [secondBid.supplier_id]
+                );
+                if (secondSupplier && secondSupplier.user_id) {
+                  await createNotification({
+                    userId: secondSupplier.user_id,
+                    title: 'Bid Result - 2nd Position',
+                    message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was successful. You achieved 2nd position. Thank you for your participation.`,
+                    type: 'INFO',
+                    category: 'bid_rejected',
+                    referenceId: tenderId,
+                    referenceType: 'tender',
+                  });
+                }
+              }
+            }
+
+            // Notify 3rd runner-up
+            if (evaluationResult.third_runner_up_bid_id) {
+              const thirdBid = await queryOne<{ supplier_id: string }>(
+                'SELECT supplier_id FROM bids WHERE id = ?',
+                [evaluationResult.third_runner_up_bid_id]
+              );
+              if (thirdBid) {
+                const thirdSupplier = await queryOne<{ user_id: string; email: string; company_name: string }>(
+                  'SELECT user_id, email, company_name FROM suppliers WHERE id = ?',
+                  [thirdBid.supplier_id]
+                );
+                if (thirdSupplier && thirdSupplier.user_id) {
+                  await createNotification({
+                    userId: thirdSupplier.user_id,
+                    title: 'Bid Result - 3rd Position',
+                    message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was successful. You achieved 3rd position. Thank you for your participation.`,
+                    type: 'INFO',
+                    category: 'bid_rejected',
+                    referenceId: tenderId,
+                    referenceType: 'tender',
+                  });
+                }
+              }
+            }
+
+            // Get all other rejected suppliers (not winner, 2nd, or 3rd)
+            const excludedIds = [
+              evaluationResult.winner_bid_id,
+              evaluationResult.second_runner_up_bid_id,
+              evaluationResult.third_runner_up_bid_id
+            ].filter(Boolean);
+
+            const otherRejectedBids = await query(
+              `SELECT supplier_id FROM bids WHERE tender_id = ? AND status = 'REJECTED' AND id NOT IN (${excludedIds.map(() => '?').join(',')})`,
+              [tenderId, ...excludedIds]
             ) as any[];
 
-            // Notify rejected suppliers with their position
-            for (let i = 0; i < rejectedBids.length; i++) {
-              const rejectedBid = rejectedBids[i];
+            // Notify other rejected suppliers
+            for (let i = 0; i < otherRejectedBids.length; i++) {
+              const rejectedBid = otherRejectedBids[i];
               const rejectedSupplier = await queryOne<{ user_id: string; email: string; company_name: string }>(
                 'SELECT user_id, email, company_name FROM suppliers WHERE id = ?',
                 [rejectedBid.supplier_id]
@@ -317,19 +366,11 @@ async function handlePatch(req: NextRequest) {
                 await createNotification({
                   userId: rejectedSupplier.user_id,
                   title: 'Bid Result - Thank You for Your Participation',
-                  message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was not successful. Your position: ${i + 2}. Thank you for your participation.`,
+                  message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was not successful. Your position: ${i + 4}. Thank you for your participation.`,
                   type: 'INFO',
                   category: 'bid_rejected',
                   referenceId: tenderId,
                   referenceType: 'tender',
-                  sendEmail: true,
-                  emailTo: rejectedSupplier.email,
-                  emailTemplate: 'bid_rejected',
-                  emailVariables: {
-                    tender_title: tender.title,
-                    tender_number: tender.tender_number,
-                    position: String(i + 2)
-                  },
                 });
               }
             }

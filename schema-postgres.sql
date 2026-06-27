@@ -304,12 +304,16 @@ CREATE TABLE IF NOT EXISTS evaluation_results (
   committee_id VARCHAR(36),
   evaluation_document_url VARCHAR(500),
   winner_bid_id VARCHAR(36),
+  second_runner_up_bid_id VARCHAR(36),
+  third_runner_up_bid_id VARCHAR(36),
   remarks TEXT,
   evaluated_by VARCHAR(36) NOT NULL,
   evaluated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (tender_id) REFERENCES tenders(id) ON DELETE CASCADE,
   FOREIGN KEY (committee_id) REFERENCES evaluation_committees(id),
   FOREIGN KEY (winner_bid_id) REFERENCES bids(id),
+  FOREIGN KEY (second_runner_up_bid_id) REFERENCES bids(id),
+  FOREIGN KEY (third_runner_up_bid_id) REFERENCES bids(id),
   FOREIGN KEY (evaluated_by) REFERENCES users(id)
 );
 

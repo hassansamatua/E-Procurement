@@ -49,7 +49,7 @@ async function handlePost(req: NextRequest) {
   try {
     const user = getUserFromRequest(req);
     const body = await req.json();
-    const { tender_id, evaluation_document_url, winner_bid_id, remarks } = body;
+    const { tender_id, evaluation_document_url, winner_bid_id, second_runner_up_bid_id, third_runner_up_bid_id, remarks } = body;
 
     // Verify user is EVALUATION_OFFICER
     const userRole = await queryOne<{ name: string }>(
@@ -93,9 +93,9 @@ async function handlePost(req: NextRequest) {
     // Create evaluation result
     const resultId = generateId();
     await execute(
-      `INSERT INTO evaluation_results (id, tender_id, evaluation_document_url, winner_bid_id, remarks, evaluated_by)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [resultId, tender_id, evaluation_document_url, winner_bid_id, remarks, user.userId]
+      `INSERT INTO evaluation_results (id, tender_id, evaluation_document_url, winner_bid_id, second_runner_up_bid_id, third_runner_up_bid_id, remarks, evaluated_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [resultId, tender_id, evaluation_document_url, winner_bid_id, second_runner_up_bid_id, third_runner_up_bid_id, remarks, user.userId]
     );
 
     // Update tender status
