@@ -31,6 +31,7 @@ async function handleGet(req: NextRequest) {
     // Suppliers can only see their own bids
     if (user.role === 'SUPPLIER') {
       const supplier = await queryOne<{ id: string }>('SELECT id FROM suppliers WHERE user_id = ?', [user.userId]);
+      console.log('Get bids - User ID:', user.userId, 'Supplier:', supplier);
       if (supplier) {
         whereClause += ' AND b.supplier_id = ?';
         params.push(supplier.id);
@@ -93,6 +94,8 @@ async function handlePost(req: NextRequest) {
       [user.userId, 'APPROVED']
     );
 
+    console.log('Submit bid - User ID:', user.userId, 'Supplier:', supplier);
+
     if (!supplier) {
       return NextResponse.json<ApiResponse>(
         { success: false, message: 'Supplier profile not found or not approved' },
@@ -125,6 +128,8 @@ async function handlePost(req: NextRequest) {
       'SELECT id FROM bids WHERE tender_id = ? AND supplier_id = ?',
       [data.tender_id, supplier.id]
     );
+
+    console.log('Submit bid - Existing bid check:', { tender_id: data.tender_id, supplier_id: supplier.id, existingBid });
 
     if (existingBid) {
       return NextResponse.json<ApiResponse>(
