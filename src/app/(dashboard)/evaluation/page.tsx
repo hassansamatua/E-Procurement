@@ -49,6 +49,7 @@ export default function EvaluationDashboard() {
     setSelectedTender(tender);
     try {
       const bidsRes = await axios.get(`/api/bids?tender_id=${tender.id}`);
+      console.log('Fetched bids:', bidsRes.data.data);
       setBids(bidsRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch bids:', error);

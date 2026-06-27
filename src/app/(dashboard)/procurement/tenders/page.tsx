@@ -40,6 +40,8 @@ export default function TenderManagement() {
   const [createError, setCreateError] = useState('');
   const [createLoading, setCreateLoading] = useState(false);
   const [selectedTender, setSelectedTender] = useState<any>(null);
+  const [evaluationResult, setEvaluationResult] = useState<any>(null);
+  const [showEvaluationDialog, setShowEvaluationDialog] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -117,6 +119,17 @@ export default function TenderManagement() {
       fetchData();
     } catch (error) {
       console.error('Failed to update tender:', error);
+    }
+  };
+
+  const handleViewEvaluation = async (tenderId: string) => {
+    try {
+      const res = await axios.get(`/api/evaluation-results?tender_id=${tenderId}`);
+      setEvaluationResult(res.data.data?.[0] || null);
+      setShowEvaluationDialog(true);
+    } catch (error) {
+      console.error('Failed to fetch evaluation result:', error);
+      alert('Failed to load evaluation result');
     }
   };
 
@@ -329,9 +342,14 @@ export default function TenderManagement() {
                   </Button>
                 )}
                 {item.status === 'EVALUATION_COMPLETE' && (
-                  <Button size="sm" variant="outline" onClick={() => handleTenderAction(item.id as string, 'FORWARD_TO_ACCOUNTING')}>
-                    Forward to Accounting
-                  </Button>
+                  <>
+                    <Button size="sm" variant="outline" onClick={() => handleViewEvaluation(item.id as string)}>
+                      View Evaluation
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleTenderAction(item.id as string, 'FORWARD_TO_ACCOUNTING')}>
+                      Forward to Accounting
+                    </Button>
+                  </>
                 )}
                 {item.status === 'AWARD_APPROVED' && (
                   <Button size="sm" onClick={() => handleTenderAction(item.id as string, 'PUBLISH_AWARD')}>
@@ -388,6 +406,57 @@ export default function TenderManagement() {
                   <p className="font-medium">{selectedTender.description}</p>
                 </div>
               </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showEvaluationDialog} onOpenChange={() => setShowEvaluationDialog(false)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Evaluation Results</DialogTitle>
+            </DialogHeader>
+            {evaluationResult ? (
+              <div className="space-y-4">
+                {evaluationResult.evaluation_document_url && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Evaluation Document</p>
+                    <a
+                      href={evaluationResult.evaluation_document_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:text-blue-800 underline"
+                    >
+                      Download Evaluation Document
+                    </a>
+                  </div>
+                )}
+                <div className="grid grid-cols-1 gap-4">
+                  <div className="p-3 border rounded-md bg-green-50">
+                    <p className="font-medium text-green-800">1st Position (Winner)</p>
+                    <p className="text-sm text-green-700">Bid ID: {evaluationResult.winner_bid_id}</p>
+                  </div>
+                  {evaluationResult.second_runner_up_bid_id && (
+                    <div className="p-3 border rounded-md bg-blue-50">
+                      <p className="font-medium text-blue-800">2nd Position</p>
+                      <p className="text-sm text-blue-700">Bid ID: {evaluationResult.second_runner_up_bid_id}</p>
+                    </div>
+                  )}
+                  {evaluationResult.third_runner_up_bid_id && (
+                    <div className="p-3 border rounded-md bg-purple-50">
+                      <p className="font-medium text-purple-800">3rd Position</p>
+                      <p className="text-sm text-purple-700">Bid ID: {evaluationResult.third_runner_up_bid_id}</p>
+                    </div>
+                  )}
+                </div>
+                {evaluationResult.remarks && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Remarks</p>
+                    <p className="font-medium">{evaluationResult.remarks}</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="text-muted-foreground">No evaluation result found</p>
             )}
           </DialogContent>
         </Dialog>
