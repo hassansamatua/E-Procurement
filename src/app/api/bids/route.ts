@@ -52,7 +52,7 @@ async function handleGet(req: NextRequest) {
        JOIN tenders t ON b.tender_id = t.id
        LEFT JOIN bid_documents bd ON b.id = bd.bid_id
        WHERE ${whereClause}
-       GROUP BY b.id
+       GROUP BY b.id, s.company_name, t.title, t.tender_number
        ORDER BY b.total_score DESC, b.submitted_at DESC
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
