@@ -82,9 +82,11 @@ async function handlePost(req: NextRequest) {
   try {
     const user = getUserFromRequest(req);
     const body = await req.json();
+    console.log('Create user request body:', body);
     const validation = createUserSchema.safeParse(body);
 
     if (!validation.success) {
+      console.log('Validation failed:', validation.error.flatten().fieldErrors);
       return NextResponse.json<ApiResponse>(
         { success: false, message: 'Validation failed', errors: validation.error.flatten().fieldErrors as Record<string, string[]> },
         { status: 400 }

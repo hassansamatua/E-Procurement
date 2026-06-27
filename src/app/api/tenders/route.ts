@@ -272,7 +272,7 @@ async function handlePatch(req: NextRequest) {
 
         console.log('PUBLISH_AWARD: Tender updated to AWARDED');
 
-        // Get evaluation result for this tender
+        // Update all bid statuses: winner to AWARDED, others to REJECTED
         const evaluationResult = await queryOne<{
           id: string;
           winner_bid_id: string;
@@ -286,122 +286,79 @@ async function handlePatch(req: NextRequest) {
         console.log('PUBLISH_AWARD: Evaluation result:', evaluationResult);
 
         if (evaluationResult) {
-          // Get winner bid and supplier
-          const winnerBid = await queryOne<{ id: string; supplier_id: string; bid_amount: number; currency: string }>(
-            'SELECT * FROM bids WHERE id = ?',
-            [evaluationResult.winner_bid_id]
+          // Update winner bid to AWARDED
+          await execute(
+            'UPDATE bids SET status = ? WHERE id = ?',
+            ['AWARDED', evaluationResult.winner_bid_id]
           );
 
-          if (winnerBid) {
-            const supplier = await queryOne<{ user_id: string; company_name: string; email: string }>(
-              'SELECT * FROM suppliers WHERE id = ?',
-              [winnerBid.supplier_id]
-            );
+          // Update all other bids to REJECTED
+          await execute(
+            `UPDATE bids SET status = 'REJECTED' WHERE tender_id = ? AND id != ?`,
+            [tenderId, evaluationResult.winner_bid_id]
+          );
 
-            if (supplier) {
-              // Notify winner with contract signing date
+          console.log('PUBLISH_AWARD: Bid statuses updated');
+
+          // Get all bids for this tender with supplier info
+          const allBids = await query(
+            `SELECT b.id, b.supplier_id, s.user_id, s.company_name 
+             FROM bids b 
+             JOIN suppliers s ON b.supplier_id = s.id 
+             WHERE b.tender_id = ?`,
+            [tenderId]
+          ) as any[];
+
+          console.log('PUBLISH_AWARD: All bids with suppliers:', allBids);
+
+          // Notify each supplier based on their position
+          for (const bid of allBids) {
+            if (!bid.user_id) {
+              console.log('PUBLISH_AWARD: Skipping supplier without user_id:', bid.company_name);
+              continue;
+            }
+
+            let title = '';
+            let message = '';
+            let type: 'INFO' | 'SUCCESS' | 'WARNING' = 'INFO';
+
+            if (bid.id === evaluationResult.winner_bid_id) {
+              // Winner
               const awardedBid = await queryOne<{ contract_signing_date: string }>(
                 'SELECT contract_signing_date FROM bids WHERE id = ?',
-                [winnerBid.id]
+                [bid.id]
               );
-
-              if (supplier.user_id) {
-                await createNotification({
-                  userId: supplier.user_id,
-                  title: 'Congratulations! Your Bid Has Been Awarded',
-                  message: `Your bid for tender "${tender.title}" (${tender.tender_number}) has been awarded (1st Position). Contract signing date: ${awardedBid?.contract_signing_date ? new Date(awardedBid.contract_signing_date).toLocaleDateString() : 'To be scheduled'}. Please contact the procurement office.`,
-                  type: 'SUCCESS',
-                  category: 'bid_awarded',
-                  referenceId: winnerBid.id,
-                  referenceType: 'bid',
-                });
-              } else {
-                console.error('Supplier has no user_id:', supplier);
-              }
+              title = 'Congratulations! Your Bid Has Been Awarded';
+              message = `Your bid for tender "${tender.title}" (${tender.tender_number}) has been awarded (1st Position). Contract signing date: ${awardedBid?.contract_signing_date ? new Date(awardedBid.contract_signing_date).toLocaleDateString() : 'To be scheduled'}. Please contact the procurement office.`;
+              type = 'SUCCESS';
+            } else if (bid.id === evaluationResult.second_runner_up_bid_id) {
+              // 2nd runner-up
+              title = 'Bid Result - 2nd Position';
+              message = `Your bid for tender "${tender.title}" (${tender.tender_number}) was successful. You achieved 2nd position. Thank you for your participation.`;
+              type = 'INFO';
+            } else if (bid.id === evaluationResult.third_runner_up_bid_id) {
+              // 3rd runner-up
+              title = 'Bid Result - 3rd Position';
+              message = `Your bid for tender "${tender.title}" (${tender.tender_number}) was successful. You achieved 3rd position. Thank you for your participation.`;
+              type = 'INFO';
+            } else {
+              // Rejected
+              title = 'Bid Result - Not Selected';
+              message = `Your bid for tender "${tender.title}" (${tender.tender_number}) was not selected. Thank you for your participation.`;
+              type = 'WARNING';
             }
 
-            // Notify 2nd runner-up
-            if (evaluationResult.second_runner_up_bid_id) {
-              const secondBid = await queryOne<{ supplier_id: string }>(
-                'SELECT supplier_id FROM bids WHERE id = ?',
-                [evaluationResult.second_runner_up_bid_id]
-              );
-              if (secondBid) {
-                const secondSupplier = await queryOne<{ user_id: string; email: string; company_name: string }>(
-                  'SELECT user_id, email, company_name FROM suppliers WHERE id = ?',
-                  [secondBid.supplier_id]
-                );
-                if (secondSupplier && secondSupplier.user_id) {
-                  await createNotification({
-                    userId: secondSupplier.user_id,
-                    title: 'Bid Result - 2nd Position',
-                    message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was successful. You achieved 2nd position. Thank you for your participation.`,
-                    type: 'INFO',
-                    category: 'bid_rejected',
-                    referenceId: tenderId,
-                    referenceType: 'tender',
-                  });
-                }
-              }
-            }
+            await createNotification({
+              userId: bid.user_id,
+              title,
+              message,
+              type,
+              category: bid.id === evaluationResult.winner_bid_id ? 'bid_awarded' : 'bid_rejected',
+              referenceId: bid.id,
+              referenceType: 'bid',
+            });
 
-            // Notify 3rd runner-up
-            if (evaluationResult.third_runner_up_bid_id) {
-              const thirdBid = await queryOne<{ supplier_id: string }>(
-                'SELECT supplier_id FROM bids WHERE id = ?',
-                [evaluationResult.third_runner_up_bid_id]
-              );
-              if (thirdBid) {
-                const thirdSupplier = await queryOne<{ user_id: string; email: string; company_name: string }>(
-                  'SELECT user_id, email, company_name FROM suppliers WHERE id = ?',
-                  [thirdBid.supplier_id]
-                );
-                if (thirdSupplier && thirdSupplier.user_id) {
-                  await createNotification({
-                    userId: thirdSupplier.user_id,
-                    title: 'Bid Result - 3rd Position',
-                    message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was successful. You achieved 3rd position. Thank you for your participation.`,
-                    type: 'INFO',
-                    category: 'bid_rejected',
-                    referenceId: tenderId,
-                    referenceType: 'tender',
-                  });
-                }
-              }
-            }
-
-            // Get all other rejected suppliers (not winner, 2nd, or 3rd)
-            const excludedIds = [
-              evaluationResult.winner_bid_id,
-              evaluationResult.second_runner_up_bid_id,
-              evaluationResult.third_runner_up_bid_id
-            ].filter(Boolean);
-
-            const otherRejectedBids = await query(
-              `SELECT supplier_id FROM bids WHERE tender_id = ? AND status = 'REJECTED' AND id NOT IN (${excludedIds.map(() => '?').join(',')})`,
-              [tenderId, ...excludedIds]
-            ) as any[];
-
-            // Notify other rejected suppliers
-            for (let i = 0; i < otherRejectedBids.length; i++) {
-              const rejectedBid = otherRejectedBids[i];
-              const rejectedSupplier = await queryOne<{ user_id: string; email: string; company_name: string }>(
-                'SELECT user_id, email, company_name FROM suppliers WHERE id = ?',
-                [rejectedBid.supplier_id]
-              );
-
-              if (rejectedSupplier && rejectedSupplier.user_id) {
-                await createNotification({
-                  userId: rejectedSupplier.user_id,
-                  title: 'Bid Result - Thank You for Your Participation',
-                  message: `Your bid for tender "${tender.title}" (${tender.tender_number}) was not successful. Your position: ${i + 4}. Thank you for your participation.`,
-                  type: 'INFO',
-                  category: 'bid_rejected',
-                  referenceId: tenderId,
-                  referenceType: 'tender',
-                });
-              }
-            }
+            console.log('PUBLISH_AWARD: Notification sent to:', bid.company_name, title);
           }
         }
         break;
