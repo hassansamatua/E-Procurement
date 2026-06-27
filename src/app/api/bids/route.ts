@@ -44,11 +44,14 @@ async function handleGet(req: NextRequest) {
     const total = (countResult as unknown as { total: number }[])[0].total;
 
     const bids = await query(
-      `SELECT b.*, s.company_name as supplier_name, t.title as tender_title, t.tender_number
+      `SELECT b.*, s.company_name as supplier_name, t.title as tender_title, t.tender_number,
+              STRING_AGG(DISTINCT bd.file_path, ',') as document_urls
        FROM bids b
        JOIN suppliers s ON b.supplier_id = s.id
        JOIN tenders t ON b.tender_id = t.id
+       LEFT JOIN bid_documents bd ON b.id = bd.bid_id
        WHERE ${whereClause}
+       GROUP BY b.id
        ORDER BY b.total_score DESC, b.submitted_at DESC
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]

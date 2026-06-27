@@ -159,6 +159,24 @@ export default function BidsManagement() {
                     <p className="font-medium">{selectedBid.notes}</p>
                   </div>
                 )}
+                {selectedBid.document_urls && (
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-2">Bid Documents</p>
+                    <div className="space-y-2">
+                      {selectedBid.document_urls.split(',').map((url: string, index: number) => (
+                        <a
+                          key={index}
+                          href={url.trim()}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-sm text-blue-600 hover:text-blue-800 underline"
+                        >
+                          View Document {index + 1}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>

@@ -173,6 +173,33 @@ export default function EvaluationDashboard() {
                   </select>
                 </div>
                 <div>
+                  <Label>Bid Documents</Label>
+                  <div className="mt-2 space-y-2">
+                    {bids.map((bid) => (
+                      <div key={bid.id} className="p-3 border rounded-md">
+                        <p className="font-medium">{bid.supplier_name}</p>
+                        {bid.document_urls ? (
+                          <div className="mt-1 space-y-1">
+                            {bid.document_urls.split(',').map((url: string, index: number) => (
+                              <a
+                                key={index}
+                                href={url.trim()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block text-sm text-blue-600 hover:text-blue-800 underline"
+                              >
+                                View Document {index + 1}
+                              </a>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground">No documents uploaded</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div>
                   <Label htmlFor="second">Select 2nd Runner-up (Optional)</Label>
                   <select
                     id="second"

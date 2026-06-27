@@ -21,6 +21,8 @@ export default function AccountingDashboard() {
   const [selectedAward, setSelectedAward] = useState<any>(null);
   const [contractSigningDate, setContractSigningDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [bidDocuments, setBidDocuments] = useState<any[]>([]);
+  const [showBidDocuments, setShowBidDocuments] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -84,6 +86,16 @@ export default function AccountingDashboard() {
     setSubmitting(false);
   };
 
+  const handleViewBidDocuments = async (tenderId: string) => {
+    try {
+      const res = await axios.get(`/api/bids?tender_id=${tenderId}`);
+      setBidDocuments(res.data.data || []);
+      setShowBidDocuments(true);
+    } catch (error) {
+      console.error('Failed to fetch bid documents:', error);
+    }
+  };
+
   const columns = [
     { key: 'request_number', label: 'Request #' },
     { key: 'title', label: 'Title' },
@@ -141,9 +153,14 @@ export default function AccountingDashboard() {
               columns={awardColumns}
               data={pendingAwards as unknown as Record<string, unknown>[]}
               actions={(item) => (
-                <Button size="sm" onClick={() => setSelectedAward(item)}>
-                  Review & Award
-                </Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => handleViewBidDocuments(item.id as string)}>
+                    View Bids
+                  </Button>
+                  <Button size="sm" onClick={() => setSelectedAward(item)}>
+                    Review & Award
+                  </Button>
+                </div>
               )}
             />
           )}
@@ -176,6 +193,49 @@ export default function AccountingDashboard() {
                 </Button>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showBidDocuments} onOpenChange={() => setShowBidDocuments(false)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Bid Documents</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {bidDocuments.length === 0 ? (
+                <p className="text-muted-foreground">No bids found</p>
+              ) : (
+                bidDocuments.map((bid) => (
+                  <div key={bid.id} className="p-4 border rounded-md">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-medium">{bid.supplier_name}</p>
+                        <p className="text-sm text-muted-foreground">Bid Amount: TZS {Number(bid.bid_amount).toLocaleString()}</p>
+                      </div>
+                      <Badge variant="outline">{bid.status}</Badge>
+                    </div>
+                    {bid.document_urls ? (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-sm font-medium">Documents:</p>
+                        {bid.document_urls.split(',').map((url: string, index: number) => (
+                          <a
+                            key={index}
+                            href={url.trim()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block text-sm text-blue-600 hover:text-blue-800 underline"
+                          >
+                            View Document {index + 1}
+                          </a>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No documents uploaded</p>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
           </DialogContent>
         </Dialog>
       </div>
