@@ -72,7 +72,13 @@ async function handleGet(req: NextRequest) {
     const requests = await query(
       `SELECT pr.*, pc.name as category_name,
               CONCAT(u.first_name, ' ', u.last_name) as requester_name,
-              o.name as organization_name
+              o.name as organization_name,
+              (SELECT ra.comments FROM request_approvals ra
+               WHERE ra.request_id = pr.id AND ra.action = 'REJECTED'
+               ORDER BY ra.created_at DESC LIMIT 1) as rejection_reason,
+              (SELECT ra.financial_remarks FROM request_approvals ra
+               WHERE ra.request_id = pr.id AND ra.action = 'REJECTED'
+               ORDER BY ra.created_at DESC LIMIT 1) as financial_rejection_reason
        FROM procurement_requests pr
        LEFT JOIN procurement_categories pc ON pr.category_id = pc.id
        JOIN users u ON pr.requested_by = u.id

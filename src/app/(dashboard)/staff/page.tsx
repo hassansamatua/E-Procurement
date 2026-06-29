@@ -60,10 +60,9 @@ export default function StaffDashboard() {
           <p className="text-muted-foreground">Manage your procurement requests</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <StatsCard title="My Requests" value={stats.procurementRequests || 0} icon={<FileText size={24} />} />
-          <StatsCard title="Active Tenders" value={stats.activeTenders || 0} icon={<Gavel size={24} />} />
-          <StatsCard title="Contracts" value={stats.totalContracts || 0} icon={<FileSignature size={24} />} />
+          <StatsCard title="Approved Requests" value={requests.filter((r: ProcurementRequest) => r.status === 'APPROVED').length} icon={<FileText size={24} />} />
         </div>
 
         <div>

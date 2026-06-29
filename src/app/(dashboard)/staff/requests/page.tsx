@@ -127,6 +127,14 @@ export default function StaffRequestsPage() {
                   <p className="text-sm text-muted-foreground">Description</p>
                   <p className="font-medium">{selectedRequest.description}</p>
                 </div>
+                {(selectedRequest.status === 'HOD_REJECTED' || selectedRequest.status === 'PROCUREMENT_REJECTED' || selectedRequest.status === 'FINANCE_REJECTED') && (
+                  <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                    <p className="text-sm font-semibold text-red-800 mb-2">Rejection Reason</p>
+                    <p className="text-sm text-red-700">
+                      {selectedRequest.rejection_reason || selectedRequest.financial_rejection_reason || 'No reason provided'}
+                    </p>
+                  </div>
+                )}
               </div>
             )}
           </DialogContent>
