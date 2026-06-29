@@ -63,9 +63,7 @@ export default function LoginPage() {
         </div>
 
         <div className="relative flex items-center gap-3">
-          <div className="grid place-items-center w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-sm ring-1 ring-white/20">
-            <Gavel size={24} />
-          </div>
+          <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-12 h-12 rounded-2xl object-cover bg-white/15 backdrop-blur-sm ring-1 ring-white/20" />
           <span className="text-xl font-bold tracking-tight">E-Procurement</span>
         </div>
 
@@ -106,9 +104,7 @@ export default function LoginPage() {
         <div className="w-full max-w-md animate-slide-up">
           {/* Mobile brand */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-8">
-            <div className="grid place-items-center w-11 h-11 rounded-2xl brand-gradient text-white shadow-lg">
-              <Gavel size={22} />
-            </div>
+            <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-11 h-11 rounded-2xl object-cover shadow-lg" />
             <span className="text-xl font-bold brand-text">E-Procurement</span>
           </div>
 

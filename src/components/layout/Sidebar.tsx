@@ -109,9 +109,7 @@ export default function Sidebar() {
         <div className="flex flex-col h-full">
           {/* Logo */}
           <div className="px-5 h-[73px] flex items-center gap-3 border-b border-sidebar-border">
-            <div className="grid place-items-center w-10 h-10 rounded-xl brand-gradient text-white shadow-md shrink-0">
-              <Gavel size={20} />
-            </div>
+            <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-10 h-10 rounded-xl object-cover shadow-md shrink-0" />
             <div className="min-w-0">
               <h1 className="text-base font-bold leading-tight brand-text">E-Procurement</h1>
               <p className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase truncate">
