@@ -89,6 +89,8 @@ async function handleGet(req: NextRequest) {
       [...params, limit, offset]
     );
 
+    console.log('Fetched requests for', user.role, ':', requests);
+
     return NextResponse.json<ApiResponse>({
       success: true,
       message: 'Procurement requests fetched',
@@ -234,7 +236,7 @@ async function handlePatch(req: NextRequest) {
         } else {
           newStatus = 'PROCUREMENT_REJECTED';
           notificationTitle = 'Request Rejected by Procurement';
-          notificationMessage = `Your request "${request.title}" has been rejected by Procurement Officer.`;
+          notificationMessage = `Your request "${request.title}" has been rejected by Procurement Officer. Reason: ${comments || 'N/A'}`;
         }
         break;
 
@@ -278,6 +280,8 @@ async function handlePatch(req: NextRequest) {
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [generateId(), requestId, user.userId, user.role, action, comments || null, financial_remarks || null]
     );
+
+    console.log('Approval record created:', { requestId, action, comments, financial_remarks });
 
     // Notify requester
     await createNotification({
