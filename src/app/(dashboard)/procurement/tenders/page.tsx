@@ -114,11 +114,25 @@ export default function TenderManagement() {
   };
 
   const handleTenderAction = async (tenderId: string, action: string) => {
-    try {
-      await axios.patch('/api/tenders', { tenderId, action });
-      fetchData();
-    } catch (error) {
-      console.error('Failed to update tender:', error);
+    if (action === 'PUBLISH_AWARD') {
+      // Prompt for contract signing date
+      const signingDate = prompt('Enter contract signing date (YYYY-MM-DD):', new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+      if (!signingDate) {
+        return; // User cancelled
+      }
+      try {
+        await axios.patch('/api/tenders', { tenderId, action, contract_signing_date: signingDate });
+        fetchData();
+      } catch (error) {
+        console.error('Failed to update tender:', error);
+      }
+    } else {
+      try {
+        await axios.patch('/api/tenders', { tenderId, action });
+        fetchData();
+      } catch (error) {
+        console.error('Failed to update tender:', error);
+      }
     }
   };
 

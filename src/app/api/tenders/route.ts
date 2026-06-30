@@ -162,8 +162,7 @@ async function handlePatch(req: NextRequest) {
   try {
     const user = getUserFromRequest(req);
     const body = await req.json();
-    console.log('Tender PATCH request body:', body);
-    const { tenderId, action } = body;
+    const { tenderId, action, contract_signing_date } = body;
 
     const tender = await queryOne<{ id: string; tender_number: string; title: string; status: string; organization_id: string }>(
       'SELECT * FROM tenders WHERE id = ?',
@@ -270,8 +269,6 @@ async function handlePatch(req: NextRequest) {
       case 'PUBLISH_AWARD':
         await execute('UPDATE tenders SET status = ? WHERE id = ?', ['AWARDED', tenderId]);
 
-        console.log('PUBLISH_AWARD: Tender updated to AWARDED');
-
         // Update all bid statuses: winner to AWARDED, others to REJECTED
         const evaluationResult = await queryOne<{
           id: string;
@@ -283,13 +280,11 @@ async function handlePatch(req: NextRequest) {
           [tenderId]
         );
 
-        console.log('PUBLISH_AWARD: Evaluation result:', evaluationResult);
-
         if (evaluationResult) {
-          // Update winner bid to AWARDED
+          // Update winner bid to AWARDED and set contract signing date
           await execute(
-            'UPDATE bids SET status = ? WHERE id = ?',
-            ['AWARDED', evaluationResult.winner_bid_id]
+            'UPDATE bids SET status = ?, contract_signing_date = ? WHERE id = ?',
+            ['AWARDED', contract_signing_date || null, evaluationResult.winner_bid_id]
           );
 
           // Update all other bids to REJECTED
@@ -297,8 +292,6 @@ async function handlePatch(req: NextRequest) {
             `UPDATE bids SET status = 'REJECTED' WHERE tender_id = ? AND id != ?`,
             [tenderId, evaluationResult.winner_bid_id]
           );
-
-          console.log('PUBLISH_AWARD: Bid statuses updated');
 
           // Get all bids for this tender with supplier info
           const allBids = await query(
@@ -309,12 +302,9 @@ async function handlePatch(req: NextRequest) {
             [tenderId]
           ) as any[];
 
-          console.log('PUBLISH_AWARD: All bids with suppliers:', allBids);
-
           // Notify each supplier based on their position
           for (const bid of allBids) {
             if (!bid.user_id) {
-              console.log('PUBLISH_AWARD: Skipping supplier without user_id:', bid.company_name);
               continue;
             }
 
