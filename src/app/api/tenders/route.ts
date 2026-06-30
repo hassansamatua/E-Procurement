@@ -302,9 +302,14 @@ async function handlePatch(req: NextRequest) {
             [tenderId]
           ) as any[];
 
+          console.log('PUBLISH_AWARD: All bids with suppliers:', allBids);
+
           // Notify each supplier based on their position
           for (const bid of allBids) {
+            console.log('Processing bid:', bid.id, 'Supplier:', bid.company_name, 'User ID:', bid.user_id);
+            
             if (!bid.user_id) {
+              console.log('Skipping supplier without user_id:', bid.company_name);
               continue;
             }
 
