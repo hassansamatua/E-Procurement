@@ -42,6 +42,7 @@ export default function HodApprovalsPage() {
     
     setActionLoading(true);
     try {
+      console.log('Sending rejection with comments:', comments);
       await axios.patch('/api/procurement-requests', {
         requestId: selectedRequest.id,
         action,

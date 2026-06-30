@@ -22,6 +22,7 @@ export default function StaffRequestsPage() {
   const fetchRequests = async () => {
     try {
       const response = await axios.get('/api/procurement-requests?limit=100');
+      console.log('Staff requests response:', response.data.data);
       setRequests(response.data.data || []);
     } catch (error) {
       console.error('Failed to fetch requests:', error);
