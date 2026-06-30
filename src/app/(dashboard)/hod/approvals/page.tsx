@@ -33,6 +33,13 @@ export default function HodApprovalsPage() {
 
   const handleAction = async (action: 'APPROVED' | 'REJECTED' | 'RETURNED') => {
     if (!selectedRequest) return;
+    
+    // Require comments for rejection
+    if (action === 'REJECTED' && !comments.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+    
     setActionLoading(true);
     try {
       await axios.patch('/api/procurement-requests', {
@@ -134,13 +141,17 @@ export default function HodApprovalsPage() {
                   <p className="font-medium">{selectedRequest.description}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Comments</p>
+                  <p className="text-sm text-muted-foreground">Rejection Reason <span className="text-red-500">*</span></p>
                   <Textarea
                     value={comments}
                     onChange={(e) => setComments(e.target.value)}
                     rows={3}
-                    placeholder="Add comments (required for rejection)"
+                    placeholder="Please provide a reason for rejection (required)"
+                    className={comments.trim() === '' ? 'border-red-300 focus:border-red-500' : ''}
                   />
+                  {comments.trim() === '' && (
+                    <p className="text-xs text-red-500 mt-1">Reason is required for rejection</p>
+                  )}
                 </div>
                 <div className="flex gap-3">
                   <Button

@@ -62,8 +62,8 @@ export default function LoginPage() {
           <div className="absolute bottom-0 right-0 h-96 w-96 rounded-full bg-black/20 blur-3xl" />
         </div>
 
-        <div className="relative flex items-center gap-4">
-          <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-16 h-16 rounded-2xl object-cover bg-white/15 backdrop-blur-sm ring-1 ring-white/20" />
+        <div className="relative flex items-center gap-5">
+          <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-12 h-12 rounded-2xl object-cover bg-white/15 backdrop-blur-sm ring-1 ring-white/20" />
           <span className="text-xl font-bold tracking-tight">E-Procurement</span>
         </div>
 
@@ -103,8 +103,8 @@ export default function LoginPage() {
       <div className="flex items-center justify-center p-6 sm:p-12">
         <div className="w-full max-w-md animate-slide-up">
           {/* Mobile brand */}
-          <div className="lg:hidden flex items-center justify-center gap-4 mb-8">
-            <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-16 h-16 rounded-2xl object-cover shadow-lg" />
+          <div className="lg:hidden flex items-center justify-center gap-5 mb-8">
+            <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-12 h-12 rounded-2xl object-cover shadow-lg" />
             <span className="text-xl font-bold brand-text">E-Procurement</span>
           </div>
 

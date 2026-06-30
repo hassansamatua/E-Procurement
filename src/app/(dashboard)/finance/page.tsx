@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { DollarSign, FileText, CheckCircle, CreditCard } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { DollarSign, FileText, CheckCircle, CreditCard, Eye } from 'lucide-react';
 import { DashboardStats, ProcurementRequest } from '@/types';
 
 export default function FinanceDashboard() {
@@ -24,6 +25,10 @@ export default function FinanceDashboard() {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [processingPayment, setProcessingPayment] = useState(false);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState<any>(null);
+  const [financialRemarks, setFinancialRemarks] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+  const [showApprovalDialog, setShowApprovalDialog] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -47,18 +52,31 @@ export default function FinanceDashboard() {
     setLoading(false);
   };
 
-  const handleApproval = async (requestId: string, action: string) => {
+  const handleApproval = async (action: 'APPROVED' | 'REJECTED') => {
+    if (!selectedRequest) return;
+    
+    // Require financial remarks for rejection
+    if (action === 'REJECTED' && !financialRemarks.trim()) {
+      alert('Please provide a reason for rejection');
+      return;
+    }
+    
+    setActionLoading(true);
     try {
       await axios.patch('/api/procurement-requests', { 
-        requestId, 
+        requestId: selectedRequest.id, 
         action, 
-        financial_remarks: action === 'APPROVED' ? 'Budget approved' : 'Budget rejected - insufficient funds' 
+        financial_remarks: action === 'APPROVED' ? 'Budget approved' : financialRemarks 
       });
+      setShowApprovalDialog(false);
+      setSelectedRequest(null);
+      setFinancialRemarks('');
       fetchData();
     } catch (error) {
       console.error('Approval failed:', error);
       alert('Failed to process approval');
     }
+    setActionLoading(false);
   };
 
   const handleProcessPayment = async () => {
@@ -158,14 +176,12 @@ export default function FinanceDashboard() {
             columns={requestColumns}
             data={requests as unknown as Record<string, unknown>[]}
             actions={(item) => (
-              <div className="flex gap-2">
-                <Button size="sm" onClick={() => handleApproval(item.id as string, 'APPROVED')}>
-                  Approve Budget
-                </Button>
-                <Button size="sm" variant="destructive" onClick={() => handleApproval(item.id as string, 'REJECTED')}>
-                  Reject
-                </Button>
-              </div>
+              <Button size="sm" variant="ghost" onClick={() => {
+                setSelectedRequest(item);
+                setShowApprovalDialog(true);
+              }}>
+                <Eye size={16} />
+              </Button>
             )}
           />
         </div>
@@ -242,6 +258,74 @@ export default function FinanceDashboard() {
                 </Button>
                 <Button variant="outline" onClick={() => setShowPaymentDialog(false)} disabled={processingPayment}>
                   Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showApprovalDialog} onOpenChange={() => setShowApprovalDialog(false)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Review Budget Request</DialogTitle>
+          </DialogHeader>
+          {selectedRequest && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Request Number</p>
+                  <p className="font-medium">{selectedRequest.request_number}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Requester</p>
+                  <p className="font-medium">{selectedRequest.requester_name || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Amount</p>
+                  <p className="font-medium">{selectedRequest.estimated_budget ? `TZS ${(selectedRequest.estimated_budget as number).toLocaleString()}` : 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Priority</p>
+                  <p className="font-medium">{selectedRequest.priority}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Title</p>
+                <p className="font-medium">{selectedRequest.title}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Description</p>
+                <p className="font-medium">{selectedRequest.description}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Rejection Reason <span className="text-red-500">*</span></p>
+                <Textarea
+                  value={financialRemarks}
+                  onChange={(e) => setFinancialRemarks(e.target.value)}
+                  rows={3}
+                  placeholder="Please provide a reason for rejection (required)"
+                  className={financialRemarks.trim() === '' ? 'border-red-300 focus:border-red-500' : ''}
+                />
+                {financialRemarks.trim() === '' && (
+                  <p className="text-xs text-red-500 mt-1">Reason is required for rejection</p>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  className="flex-1"
+                  onClick={() => handleApproval('APPROVED')}
+                  disabled={actionLoading}
+                >
+                  Approve Budget
+                </Button>
+                <Button
+                  className="flex-1"
+                  variant="destructive"
+                  onClick={() => handleApproval('REJECTED')}
+                  disabled={actionLoading}
+                >
+                  Reject
                 </Button>
               </div>
             </div>

@@ -76,8 +76,8 @@ export default function RegisterPage() {
     <div className="min-h-screen flex items-center justify-center p-4 py-8" style={{background:'linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%)'}}>
       <Card className="w-full max-w-2xl rounded-2xl shadow-xl">
         <CardHeader className="text-center">
-          <div className="flex justify-center mb-6">
-            <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-20 h-20 rounded-2xl object-cover shadow-lg" />
+          <div className="flex justify-center mb-8">
+            <img src="/logo.jpeg" alt="E-Procurement Logo" className="w-16 h-16 rounded-2xl object-cover shadow-lg" />
           </div>
           <CardTitle className="text-2xl font-bold" style={{color:'#1B5E20'}}>Supplier Registration</CardTitle>
           <CardDescription>Register your company to access procurement opportunities</CardDescription>
