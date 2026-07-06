@@ -64,6 +64,12 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: 'Requests', href: '/accounting/requests', icon: <FileText size={20} /> },
     { label: 'Notifications', href: '/accounting/notifications', icon: <Bell size={20} /> },
   ],
+  EVALUATION_OFFICER: [
+    { label: 'Dashboard', href: '/evaluation', icon: <LayoutDashboard size={20} /> },
+    { label: 'Tenders Under Evaluation', href: '/evaluation#tenders-under-evaluation', icon: <Gavel size={20} /> },
+    { label: 'Evaluation Results', href: '/evaluation#evaluation-results', icon: <ClipboardCheck size={20} /> },
+    { label: 'Notifications', href: '/evaluation', icon: <Bell size={20} /> },
+  ],
   FINANCE_OFFICER: [
     { label: 'Dashboard', href: '/finance', icon: <LayoutDashboard size={20} /> },
     { label: 'Pending Budget Approvals', href: '/finance#pending-approvals', icon: <ClipboardCheck size={20} /> },

@@ -16,6 +16,7 @@ import { DashboardStats } from '@/types';
 export default function EvaluationDashboard() {
   const [stats, setStats] = useState<DashboardStats>({});
   const [tenders, setTenders] = useState<any[]>([]);
+  const [evaluationResults, setEvaluationResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTender, setSelectedTender] = useState<any>(null);
   const [bids, setBids] = useState<any[]>([]);
@@ -33,12 +34,14 @@ export default function EvaluationDashboard() {
 
   const fetchData = async () => {
     try {
-      const [statsRes, tendersRes] = await Promise.all([
+      const [statsRes, tendersRes, resultsRes] = await Promise.all([
         axios.get('/api/dashboard'),
         axios.get('/api/tenders?status=UNDER_EVALUATION&limit=20'),
+        axios.get('/api/evaluation-results?limit=20'),
       ]);
       setStats(statsRes.data.data);
       setTenders(tendersRes.data.data || []);
+      setEvaluationResults(resultsRes.data.data || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
@@ -118,7 +121,7 @@ export default function EvaluationDashboard() {
           <StatsCard title="Total Awards" value={stats.totalContracts || 0} icon={<Award size={24} />} />
         </div>
 
-        <div>
+        <div id="tenders-under-evaluation">
           <h2 className="text-lg font-semibold mb-4">Tenders Under Evaluation</h2>
           {loading ? (
             <div className="h-64 bg-muted rounded-lg animate-pulse" />
@@ -131,6 +134,18 @@ export default function EvaluationDashboard() {
                   Evaluate
                 </Button>
               )}
+            />
+          )}
+        </div>
+
+        <div id="evaluation-results">
+          <h2 className="text-lg font-semibold mb-4">Evaluation Results</h2>
+          {loading ? (
+            <div className="h-64 bg-muted rounded-lg animate-pulse" />
+          ) : (
+            <DataTable
+              columns={columns}
+              data={evaluationResults as unknown as Record<string, unknown>[]}
             />
           )}
         </div>
