@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query, execute } from '@/lib/db';
 import { withAuth, getUserFromRequest } from '@/middleware/withAuth';
-import { markAsRead, markAllAsRead } from '@/lib/notifications';
+import { markAsRead, markAllAsRead, createNotification } from '@/lib/notifications';
 import { getPaginationParams } from '@/lib/utils';
 import { ApiResponse } from '@/types';
 
@@ -77,5 +77,40 @@ async function handlePatch(req: NextRequest) {
   }
 }
 
+async function handlePost(req: NextRequest) {
+  try {
+    const user = getUserFromRequest(req);
+    const body = await req.json();
+    const { title, message, type, category } = body;
+
+    if (!title || !message) {
+      return NextResponse.json<ApiResponse>(
+        { success: false, message: 'Title and message are required' },
+        { status: 400 }
+      );
+    }
+
+    await createNotification({
+      userId: user.userId,
+      title,
+      message,
+      type: type || 'INFO',
+      category: category || 'test',
+    });
+
+    return NextResponse.json<ApiResponse>({
+      success: true,
+      message: 'Test notification created',
+    });
+  } catch (error) {
+    console.error('Create test notification error:', error);
+    return NextResponse.json<ApiResponse>(
+      { success: false, message: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 export const GET = withAuth(handleGet);
 export const PATCH = withAuth(handlePatch);
+export const POST = withAuth(handlePost);
