@@ -17,6 +17,7 @@ import { DashboardStats, ProcurementRequest } from '@/types';
 export default function FinanceDashboard() {
   const [stats, setStats] = useState<DashboardStats>({});
   const [requests, setRequests] = useState<ProcurementRequest[]>([]);
+  const [completedRequests, setCompletedRequests] = useState<ProcurementRequest[]>([]);
   const [contracts, setContracts] = useState<any[]>([]);
   const [payments, setPayments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -36,14 +37,16 @@ export default function FinanceDashboard() {
 
   const fetchData = async () => {
     try {
-      const [statsRes, reqRes, contractRes, paymentRes] = await Promise.all([
+      const [statsRes, reqRes, completedReqRes, contractRes, paymentRes] = await Promise.all([
         axios.get('/api/dashboard'),
         axios.get('/api/procurement-requests?status=PENDING_FINANCE&limit=10'),
+        axios.get('/api/procurement-requests?status=FINANCE_REJECTED&limit=10'),
         axios.get('/api/contracts?status=ACTIVE&limit=20'),
         axios.get('/api/payments?limit=20'),
       ]);
       setStats(statsRes.data.data);
       setRequests(reqRes.data.data || []);
+      setCompletedRequests(completedReqRes.data.data || []);
       setContracts(contractRes.data.data || []);
       setPayments(paymentRes.data.data || []);
     } catch (error) {
@@ -186,6 +189,24 @@ export default function FinanceDashboard() {
           />
         </div>
 
+        {completedRequests.length > 0 && (
+          <div>
+            <h2 className="text-lg font-semibold mb-4">Approval History</h2>
+            <DataTable
+              columns={requestColumns}
+              data={completedRequests as unknown as Record<string, unknown>[]}
+              actions={(item) => (
+                <Button size="sm" variant="ghost" onClick={() => {
+                  setSelectedRequest(item);
+                  setShowApprovalDialog(true);
+                }}>
+                  <Eye size={16} />
+                </Button>
+              )}
+            />
+          </div>
+        )}
+
         <div>
           <h2 className="text-lg font-semibold mb-4">Active Contracts (Ready for Payment)</h2>
           <DataTable
@@ -265,10 +286,10 @@ export default function FinanceDashboard() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showApprovalDialog} onOpenChange={() => setShowApprovalDialog(false)}>
+        <Dialog open={showApprovalDialog} onOpenChange={() => setShowApprovalDialog(false)}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Review Budget Request</DialogTitle>
+            <DialogTitle>{selectedRequest?.status === 'PENDING_FINANCE' ? 'Review Budget Request' : 'Request Details'}</DialogTitle>
           </DialogHeader>
           {selectedRequest && (
             <div className="space-y-4">
@@ -298,36 +319,40 @@ export default function FinanceDashboard() {
                 <p className="text-sm text-muted-foreground">Description</p>
                 <p className="font-medium">{selectedRequest.description}</p>
               </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Rejection Reason <span className="text-red-500">*</span></p>
-                <Textarea
-                  value={financialRemarks}
-                  onChange={(e) => setFinancialRemarks(e.target.value)}
-                  rows={3}
-                  placeholder="Please provide a reason for rejection (required)"
-                  className={financialRemarks.trim() === '' ? 'border-red-300 focus:border-red-500' : ''}
-                />
-                {financialRemarks.trim() === '' && (
-                  <p className="text-xs text-red-500 mt-1">Reason is required for rejection</p>
-                )}
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  className="flex-1"
-                  onClick={() => handleApproval('APPROVED')}
-                  disabled={actionLoading}
-                >
-                  Approve Budget
-                </Button>
-                <Button
-                  className="flex-1"
-                  variant="destructive"
-                  onClick={() => handleApproval('REJECTED')}
-                  disabled={actionLoading}
-                >
-                  Reject
-                </Button>
-              </div>
+              {selectedRequest.status === 'PENDING_FINANCE' && (
+                <>
+                  <div>
+                    <p className="text-sm text-muted-foreground">Rejection Reason <span className="text-red-500">*</span></p>
+                    <Textarea
+                      value={financialRemarks}
+                      onChange={(e) => setFinancialRemarks(e.target.value)}
+                      rows={3}
+                      placeholder="Please provide a reason for rejection (required)"
+                      className={financialRemarks.trim() === '' ? 'border-red-300 focus:border-red-500' : ''}
+                    />
+                    {financialRemarks.trim() === '' && (
+                      <p className="text-xs text-red-500 mt-1">Reason is required for rejection</p>
+                    )}
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      className="flex-1"
+                      onClick={() => handleApproval('APPROVED')}
+                      disabled={actionLoading}
+                    >
+                      Approve Budget
+                    </Button>
+                    <Button
+                      className="flex-1"
+                      variant="destructive"
+                      onClick={() => handleApproval('REJECTED')}
+                      disabled={actionLoading}
+                    >
+                      Reject
+                    </Button>
+                  </div>
+                </>
+              )}
             </div>
           )}
         </DialogContent>

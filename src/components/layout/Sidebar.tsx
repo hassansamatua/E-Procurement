@@ -64,6 +64,12 @@ const roleNavItems: Record<string, NavItem[]> = {
     { label: 'Requests', href: '/accounting/requests', icon: <FileText size={20} /> },
     { label: 'Notifications', href: '/accounting/notifications', icon: <Bell size={20} /> },
   ],
+  FINANCE_OFFICER: [
+    { label: 'Dashboard', href: '/finance', icon: <LayoutDashboard size={20} /> },
+    { label: 'Pending Budget Approvals', href: '/finance', icon: <ClipboardCheck size={20} /> },
+    { label: 'Active Contracts', href: '/finance', icon: <FileSignature size={20} /> },
+    { label: 'Payment History', href: '/finance', icon: <FileText size={20} /> },
+  ],
   SUPPLIER: [
     { label: 'Dashboard', href: '/supplier', icon: <LayoutDashboard size={20} /> },
     { label: 'Available Tenders', href: '/supplier/tenders', icon: <Gavel size={20} /> },

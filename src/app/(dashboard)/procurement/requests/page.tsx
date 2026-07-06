@@ -139,6 +139,7 @@ export default function ProcurementRequestsPage() {
   };
 
   const actionableRequests = requests.filter((r) => r.status === 'PENDING_PROCUREMENT' || r.status === 'HOD_APPROVED');
+  const completedRequests = requests.filter((r) => r.status === 'PROCUREMENT_REJECTED');
   const approvedRequests = requests.filter((r) => r.status === 'APPROVED');
 
   const columns = [
@@ -188,6 +189,21 @@ export default function ProcurementRequestsPage() {
                 )}
               />
             </div>
+
+            {completedRequests.length > 0 && (
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Approval History</h2>
+                <DataTable
+                  columns={columns}
+                  data={completedRequests}
+                  actions={(item) => (
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedRequest(item)}>
+                      <Eye size={16} />
+                    </Button>
+                  )}
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -270,7 +286,7 @@ export default function ProcurementRequestsPage() {
         <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Process Request</DialogTitle>
+              <DialogTitle>{selectedRequest?.status === 'PENDING_PROCUREMENT' || selectedRequest?.status === 'HOD_APPROVED' ? 'Process Request' : 'Request Details'}</DialogTitle>
             </DialogHeader>
             {selectedRequest && (
               <div className="space-y-4">
@@ -300,38 +316,42 @@ export default function ProcurementRequestsPage() {
                   <p className="text-sm text-muted-foreground">Description</p>
                   <p className="font-medium">{selectedRequest.description}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Rejection Reason <span className="text-red-500">*</span></p>
-                  <Textarea
-                    value={comments}
-                    onChange={(e) => setComments(e.target.value)}
-                    rows={3}
-                    placeholder="Please provide a reason for rejection (required)"
-                    className={comments.trim() === '' ? 'border-red-300 focus:border-red-500' : ''}
-                  />
-                  {comments.trim() === '' && (
-                    <p className="text-xs text-red-500 mt-1">Reason is required for rejection</p>
-                  )}
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    className="flex-1"
-                    onClick={() => handleAction('APPROVED')}
-                    disabled={actionLoading}
-                  >
-                    <Check size={16} className="mr-2" />
-                    Approve & Forward to Finance
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    variant="destructive"
-                    onClick={() => handleAction('REJECTED')}
-                    disabled={actionLoading}
-                  >
-                    <X size={16} className="mr-2" />
-                    Reject
-                  </Button>
-                </div>
+                {(selectedRequest.status === 'PENDING_PROCUREMENT' || selectedRequest.status === 'HOD_APPROVED') && (
+                  <>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Rejection Reason <span className="text-red-500">*</span></p>
+                      <Textarea
+                        value={comments}
+                        onChange={(e) => setComments(e.target.value)}
+                        rows={3}
+                        placeholder="Please provide a reason for rejection (required)"
+                        className={comments.trim() === '' ? 'border-red-300 focus:border-red-500' : ''}
+                      />
+                      {comments.trim() === '' && (
+                        <p className="text-xs text-red-500 mt-1">Reason is required for rejection</p>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        className="flex-1"
+                        onClick={() => handleAction('APPROVED')}
+                        disabled={actionLoading}
+                      >
+                        <Check size={16} className="mr-2" />
+                        Approve & Forward to Finance
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        variant="destructive"
+                        onClick={() => handleAction('REJECTED')}
+                        disabled={actionLoading}
+                      >
+                        <X size={16} className="mr-2" />
+                        Reject
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </DialogContent>

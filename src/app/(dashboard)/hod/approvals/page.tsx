@@ -75,6 +75,7 @@ export default function HodApprovalsPage() {
   };
 
   const pendingRequests = requests.filter((r) => r.status === 'PENDING_HOD');
+  const completedRequests = requests.filter((r) => r.status === 'HOD_APPROVED' || r.status === 'HOD_REJECTED');
 
   const columns = [
     { key: 'request_number', label: 'Request No.' },
@@ -96,21 +97,41 @@ export default function HodApprovalsPage() {
         {loading ? (
           <div className="h-64 bg-muted rounded-lg animate-pulse" />
         ) : (
-          <DataTable
-            columns={columns}
-            data={pendingRequests}
-            actions={(item) => (
-              <Button size="sm" variant="ghost" onClick={() => setSelectedRequest(item)}>
-                <Eye size={16} />
-              </Button>
+          <>
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold">Requests Awaiting Your Review</h2>
+              <DataTable
+                columns={columns}
+                data={pendingRequests}
+                actions={(item) => (
+                  <Button size="sm" variant="ghost" onClick={() => setSelectedRequest(item)}>
+                    <Eye size={16} />
+                  </Button>
+                )}
+              />
+            </div>
+
+            {completedRequests.length > 0 && (
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold">Approval History</h2>
+                <DataTable
+                  columns={columns}
+                  data={completedRequests}
+                  actions={(item) => (
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedRequest(item)}>
+                      <Eye size={16} />
+                    </Button>
+                  )}
+                />
+              </div>
             )}
-          />
+          </>
         )}
 
         <Dialog open={!!selectedRequest} onOpenChange={() => setSelectedRequest(null)}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle>Approve Request</DialogTitle>
+              <DialogTitle>{selectedRequest?.status === 'PENDING_HOD' ? 'Approve Request' : 'Request Details'}</DialogTitle>
             </DialogHeader>
             {selectedRequest && (
               <div className="space-y-4">
@@ -140,46 +161,50 @@ export default function HodApprovalsPage() {
                   <p className="text-sm text-muted-foreground">Description</p>
                   <p className="font-medium">{selectedRequest.description}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Rejection Reason <span className="text-red-500">*</span></p>
-                  <Textarea
-                    value={comments}
-                    onChange={(e) => setComments(e.target.value)}
-                    rows={3}
-                    placeholder="Please provide a reason for rejection (required)"
-                    className={comments.trim() === '' ? 'border-red-300 focus:border-red-500' : ''}
-                  />
-                  {comments.trim() === '' && (
-                    <p className="text-xs text-red-500 mt-1">Reason is required for rejection</p>
-                  )}
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    className="flex-1"
-                    onClick={() => handleAction('APPROVED')}
-                    disabled={actionLoading}
-                  >
-                    <Check size={16} className="mr-2" />
-                    Approve
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    variant="destructive"
-                    onClick={() => handleAction('REJECTED')}
-                    disabled={actionLoading}
-                  >
-                    <X size={16} className="mr-2" />
-                    Reject
-                  </Button>
-                  <Button
-                    className="flex-1"
-                    variant="outline"
-                    onClick={() => handleAction('RETURNED')}
-                    disabled={actionLoading}
-                  >
-                    Return
-                  </Button>
-                </div>
+                {selectedRequest.status === 'PENDING_HOD' && (
+                  <>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Rejection Reason <span className="text-red-500">*</span></p>
+                      <Textarea
+                        value={comments}
+                        onChange={(e) => setComments(e.target.value)}
+                        rows={3}
+                        placeholder="Please provide a reason for rejection (required)"
+                        className={comments.trim() === '' ? 'border-red-300 focus:border-red-500' : ''}
+                      />
+                      {comments.trim() === '' && (
+                        <p className="text-xs text-red-500 mt-1">Reason is required for rejection</p>
+                      )}
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        className="flex-1"
+                        onClick={() => handleAction('APPROVED')}
+                        disabled={actionLoading}
+                      >
+                        <Check size={16} className="mr-2" />
+                        Approve
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        variant="destructive"
+                        onClick={() => handleAction('REJECTED')}
+                        disabled={actionLoading}
+                      >
+                        <X size={16} className="mr-2" />
+                        Reject
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        variant="outline"
+                        onClick={() => handleAction('RETURNED')}
+                        disabled={actionLoading}
+                      >
+                        Return
+                      </Button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
           </DialogContent>
