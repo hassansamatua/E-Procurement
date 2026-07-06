@@ -66,9 +66,9 @@ const roleNavItems: Record<string, NavItem[]> = {
   ],
   FINANCE_OFFICER: [
     { label: 'Dashboard', href: '/finance', icon: <LayoutDashboard size={20} /> },
-    { label: 'Pending Budget Approvals', href: '/finance', icon: <ClipboardCheck size={20} /> },
-    { label: 'Active Contracts', href: '/finance', icon: <FileSignature size={20} /> },
-    { label: 'Payment History', href: '/finance', icon: <FileText size={20} /> },
+    { label: 'Pending Budget Approvals', href: '/finance#pending-approvals', icon: <ClipboardCheck size={20} /> },
+    { label: 'Active Contracts', href: '/finance#active-contracts', icon: <FileSignature size={20} /> },
+    { label: 'Payment History', href: '/finance#payment-history', icon: <FileText size={20} /> },
   ],
   SUPPLIER: [
     { label: 'Dashboard', href: '/supplier', icon: <LayoutDashboard size={20} /> },
@@ -88,6 +88,15 @@ export default function Sidebar() {
   if (!user) return null;
 
   const navItems = roleNavItems[user.role] || [];
+
+  // Handle hash-based active state
+  const getActiveState = (href: string) => {
+    if (href.includes('#')) {
+      const [path, hash] = href.split('#');
+      return pathname === path && window.location.hash === `#${hash}`;
+    }
+    return pathname === href;
+  };
 
   return (
     <>
@@ -130,7 +139,7 @@ export default function Sidebar() {
               Menu
             </p>
             {navItems.map((item) => {
-              const active = pathname === item.href;
+              const active = getActiveState(item.href);
               return (
                 <Link
                   key={item.href}
@@ -139,17 +148,17 @@ export default function Sidebar() {
                   className={cn(
                     "group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200",
                     active
-                      ? "bg-accent text-accent-foreground shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-accent/60 hover:text-foreground hover:translate-x-0.5"
                   )}
                 >
                   <span
                     className={cn(
-                      "absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full brand-gradient transition-opacity",
+                      "absolute left-0 top-1/2 -translate-y-1/2 h-6 w-1 rounded-r-full bg-white transition-opacity",
                       active ? "opacity-100" : "opacity-0"
                     )}
                   />
-                  <span className={cn("transition-colors", active ? "text-primary" : "group-hover:text-primary")}>
+                  <span className={cn("transition-colors", active ? "text-white" : "group-hover:text-primary")}>
                     {item.icon}
                   </span>
                   {item.label}

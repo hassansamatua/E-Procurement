@@ -173,7 +173,7 @@ export default function FinanceDashboard() {
           <StatsCard title="Total Tenders" value={stats.totalTenders || 0} icon={<CheckCircle size={24} />} />
         </div>
 
-        <div>
+        <div id="pending-approvals">
           <h2 className="text-lg font-semibold mb-4">Pending Budget Approvals</h2>
           <DataTable
             columns={requestColumns}
@@ -207,7 +207,7 @@ export default function FinanceDashboard() {
           </div>
         )}
 
-        <div>
+        <div id="active-contracts">
           <h2 className="text-lg font-semibold mb-4">Active Contracts (Ready for Payment)</h2>
           <DataTable
             columns={contractColumns}
@@ -224,7 +224,7 @@ export default function FinanceDashboard() {
           />
         </div>
 
-        <div>
+        <div id="payment-history">
           <h2 className="text-lg font-semibold mb-4">Payment History</h2>
           <DataTable
             columns={paymentColumns}
